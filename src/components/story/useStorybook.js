@@ -302,18 +302,17 @@ export default function useStorybook() {
     finally { setIllustratingChapters(prev => { const n = { ...prev }; delete n[chapterIndex]; return n; }); }
   };
 
-  const loadBookshelf = useCallback(async () => {
-    try {
-      const me = await base44.auth.me();
-      const shelf = await base44.entities.Book.filter({ created_by_id: me.id }, '-updated_date', 50);
-      setBookshelf(shelf.map(b => ({
-        id: b.id, title: b.title, idea: b.idea || '', genre: b.genre,
-        chapters: (b.chapters || []).length,
-        updated: b.updated_date,
-        cover_url: b.cover_url || null
-      })));
-    } catch { /* bookshelf best-effort */ }
-  }, []);
+const loadBookshelf = useCallback(async () => {
+  try {
+    const shelf = await base44.entities.Book.filter({}, '-updated_date', 50);
+    setBookshelf(shelf.map(b => ({
+      id: b.id, title: b.title, idea: b.idea || '', genre: b.genre,
+      chapters: (b.chapters || []).length,
+      updated: b.updated_date,
+      cover_url: b.cover_url || null
+    })));
+  } catch { /* bookshelf best-effort */ }
+}, []);
 
   // Update the rolling summary from new/edited chapter content. Best-effort:
   // failures must never lose chapters, so we swallow and surface via status.
