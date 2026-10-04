@@ -1,6 +1,5 @@
 import { base44 } from '@/api/base44Client';
 
-// Per-paragraph illustration utilities for Storykind chapters.
 // Each "activity" paragraph in a chapter gets its own image whose prompt is
 // built directly from that paragraph's described content — so the image
 // faithfully mirrors what the paragraph describes.
