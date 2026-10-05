@@ -3,7 +3,7 @@ import { Feather, Sparkles } from 'lucide-react';
 import StartPage from '@/components/story/StartPage';
 import StoryWorkspace from '@/components/story/StoryWorkspace';
 import SavedStories from '@/components/story/SavedStories';
-import useStorybook from '@/components/story/useStorybook';
+import useStorybook from '@/components/useStorybook';
 
 export default function Home() {
   const s = useStorybook();
