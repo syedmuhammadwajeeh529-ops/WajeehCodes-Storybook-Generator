@@ -2,6 +2,7 @@ import http from "node:http";
 import { generateStructured } from "./gemini.js";
 import { createBook } from "./books.js";
 import { createChapter } from "./chapters.js";
+import { createCharacter } from "./characters.js";
 
 const PORT = 3001;
 const CORS_ORIGIN = "http://localhost:5173";
@@ -110,6 +111,31 @@ const server = http.createServer(async (req, res) => {
       });
 
       res.end(JSON.stringify(createdChapter));
+      return;
+    }
+
+    if (req.url === "/api/characters") {
+      const character = data;
+
+      if (!character.book_id || !character.name) {
+        res.writeHead(400, {
+          "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+          error: "book_id and name are required"
+        }));
+
+        return;
+      }
+
+      const createdCharacter = await createCharacter(character);
+
+      res.writeHead(201, {
+        "Content-Type": "application/json"
+      });
+
+      res.end(JSON.stringify(createdCharacter));
       return;
     }
 
