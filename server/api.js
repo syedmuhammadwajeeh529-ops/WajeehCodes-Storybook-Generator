@@ -1,6 +1,7 @@
 import http from "node:http";
 import { generateStructured } from "./gemini.js";
 import { createBook } from "./books.js";
+import { createChapter } from "./chapters.js";
 
 const PORT = 3001;
 const CORS_ORIGIN = "http://localhost:5173";
@@ -84,6 +85,31 @@ const server = http.createServer(async (req, res) => {
       });
 
       res.end(JSON.stringify(createdBook));
+      return;
+    }
+
+    if (req.url === "/api/chapters") {
+      const chapter = data;
+
+      if (!chapter.book_id || !chapter.chapter_number || !chapter.heading) {
+        res.writeHead(400, {
+          "Content-Type": "application/json"
+        });
+
+        res.end(JSON.stringify({
+          error: "book_id, chapter_number, and heading are required"
+        }));
+
+        return;
+      }
+
+      const createdChapter = await createChapter(chapter);
+
+      res.writeHead(201, {
+        "Content-Type": "application/json"
+      });
+
+      res.end(JSON.stringify(createdChapter));
       return;
     }
 
