@@ -38,6 +38,9 @@ export async function generateStory(prompt) {
 export async function generateStructured(prompt, schema) {
   const data = await callOpenRouter({
     model: "openrouter/free",
+    provider: {
+      require_parameters: true
+    },
     messages: [
       {
         role: "user",
@@ -55,11 +58,18 @@ export async function generateStructured(prompt, schema) {
   });
 
   const content = data.choices?.[0]?.message?.content;
+
   console.log("OpenRouter structured content:", content);
 
   if (!content) {
     throw new Error("OpenRouter returned an empty response.");
   }
 
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error(
+      "OpenRouter returned a non-JSON response for a structured request."
+    );
+  }
 }

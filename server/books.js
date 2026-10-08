@@ -106,3 +106,14 @@ export async function updateBook(id, updates) {
 
   return result.affectedRows ? getBook(id) : null;
 }
+
+export async function deleteBook(id) {
+  await ensureBookSchema();
+
+  const [result] = await db.execute(
+    "DELETE FROM books WHERE id = ?",
+    [id]
+  );
+
+  return result.affectedRows > 0;
+}

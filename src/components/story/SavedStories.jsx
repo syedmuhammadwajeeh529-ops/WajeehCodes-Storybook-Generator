@@ -3,6 +3,25 @@ import { BookOpen, PenLine, ArrowLeft, Library } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import CoverImage from './CoverImage';
 
+/**
+ * @typedef {Object} SavedBook
+ * @property {number} id
+ * @property {string} title
+ * @property {string} [cover_url]
+ * @property {number} chapters
+ * @property {string} [idea]
+ * @property {string} [genre]
+ * @property {string} [updated]
+ */
+
+/**
+ * @param {{
+ *   books: SavedBook[],
+ *   onBack: () => void,
+ *   onNew: () => void,
+ *   onOpen: (id: number) => void | Promise<void>
+ * }} props
+ */
 export default function SavedStories({ books, onBack, onNew, onOpen }) {
   return <section aria-label="Saved stories" className="max-w-5xl mx-auto">
     <div className="flex items-center justify-between flex-wrap gap-4">

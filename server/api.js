@@ -63,7 +63,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.url === "/api/books/query") {
+    if (req.url.startsWith("/api/books/query")) {
       writeJson(res, 200, await listBooks(data.limit));
       return;
     }
