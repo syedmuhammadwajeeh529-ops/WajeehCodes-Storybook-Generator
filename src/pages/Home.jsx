@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Feather, Sparkles } from 'lucide-react';
+import { Feather } from 'lucide-react';
 import StartPage from '@/components/story/StartPage';
 import StoryWorkspace from '@/components/story/StoryWorkspace';
 import SavedStories from '@/components/story/SavedStories';

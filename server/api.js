@@ -1,11 +1,15 @@
 import http from "node:http";
 import { generateStructured } from "./gemini.js";
-import { createBook } from "./books.js";
-import { createChapter } from "./chapters.js";
-import { createCharacter } from "./characters.js";
+import { createBook, getBook, listBooks, updateBook } from "./books.js";
+import { generateImage } from "./images.js";
 
-const PORT = 3001;
-const CORS_ORIGIN = "http://localhost:5173";
+const PORT = Number(process.env.PORT) || 3001;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+function writeJson(res, status, payload) {
+  res.writeHead(status, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(payload));
+}
 
 const server = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN);
@@ -19,143 +23,79 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method !== "POST") {
-    res.writeHead(404, {
-      "Content-Type": "application/json"
-    });
-
-    res.end(JSON.stringify({
-      error: "Not found"
-    }));
-
+    writeJson(res, 404, { error: "Not found" });
     return;
   }
 
   try {
     let body = "";
-
-    for await (const chunk of req) {
-      body += chunk;
-    }
-
-    const data = JSON.parse(body);
+    for await (const chunk of req) body += chunk;
+    const data = body ? JSON.parse(body) : {};
 
     if (req.url === "/api/gemini") {
       const { prompt, schema } = data;
-
       if (!prompt || !schema) {
-        res.writeHead(400, {
-          "Content-Type": "application/json"
-        });
-
-        res.end(JSON.stringify({
-          error: "prompt and schema are required"
-        }));
-
+        writeJson(res, 400, { error: "prompt and schema are required" });
         return;
       }
 
-      const result = await generateStructured(prompt, schema);
+      writeJson(res, 200, await generateStructured(prompt, schema));
+      return;
+    }
 
-      res.writeHead(200, {
-        "Content-Type": "application/json"
-      });
+    if (req.url === "/api/images") {
+      if (!data.prompt) {
+        writeJson(res, 400, { error: "prompt is required" });
+        return;
+      }
 
-      res.end(JSON.stringify(result));
+      writeJson(res, 200, await generateImage(data.prompt));
       return;
     }
 
     if (req.url === "/api/books") {
-      const book = data;
-
-      if (!book.title) {
-        res.writeHead(400, {
-          "Content-Type": "application/json"
-        });
-
-        res.end(JSON.stringify({
-          error: "title is required"
-        }));
-
+      if (!data.title) {
+        writeJson(res, 400, { error: "title is required" });
         return;
       }
 
-      const createdBook = await createBook(book);
-
-      res.writeHead(201, {
-        "Content-Type": "application/json"
-      });
-
-      res.end(JSON.stringify(createdBook));
+      writeJson(res, 201, await createBook(data));
       return;
     }
 
-    if (req.url === "/api/chapters") {
-      const chapter = data;
+    if (req.url === "/api/books/query") {
+      writeJson(res, 200, await listBooks(data.limit));
+      return;
+    }
 
-      if (!chapter.book_id || !chapter.chapter_number || !chapter.heading) {
-        res.writeHead(400, {
-          "Content-Type": "application/json"
-        });
-
-        res.end(JSON.stringify({
-          error: "book_id, chapter_number, and heading are required"
-        }));
-
+    const getBookMatch = req.url.match(/^\/api\/books\/(\d+)\/get$/);
+    if (getBookMatch) {
+      const book = await getBook(getBookMatch[1]);
+      if (!book) {
+        writeJson(res, 404, { error: "Book not found" });
         return;
       }
 
-      const createdChapter = await createChapter(chapter);
-
-      res.writeHead(201, {
-        "Content-Type": "application/json"
-      });
-
-      res.end(JSON.stringify(createdChapter));
+      writeJson(res, 200, book);
       return;
     }
 
-    if (req.url === "/api/characters") {
-      const character = data;
-
-      if (!character.book_id || !character.name) {
-        res.writeHead(400, {
-          "Content-Type": "application/json"
-        });
-
-        res.end(JSON.stringify({
-          error: "book_id and name are required"
-        }));
-
+    const updateBookMatch = req.url.match(/^\/api\/books\/(\d+)$/);
+    if (updateBookMatch) {
+      const book = await updateBook(updateBookMatch[1], data);
+      if (!book) {
+        writeJson(res, 404, { error: "Book not found" });
         return;
       }
 
-      const createdCharacter = await createCharacter(character);
-
-      res.writeHead(201, {
-        "Content-Type": "application/json"
-      });
-
-      res.end(JSON.stringify(createdCharacter));
+      writeJson(res, 200, book);
       return;
     }
 
-    res.writeHead(404, {
-      "Content-Type": "application/json"
-    });
-
-    res.end(JSON.stringify({
-      error: "Not found"
-    }));
+    writeJson(res, 404, { error: "Not found" });
   } catch (error) {
     console.error("API error:", error);
-
-    res.writeHead(500, {
-      "Content-Type": "application/json"
-    });
-
-    res.end(JSON.stringify({
-      error: error?.message || "Server error"
-    }));
+    writeJson(res, 500, { error: error?.message || "Server error" });
   }
 });
 
