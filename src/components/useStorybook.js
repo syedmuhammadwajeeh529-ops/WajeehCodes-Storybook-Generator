@@ -163,6 +163,35 @@ async function updateBookApi(id, updates) {
   return response.json();
 }
 
+async function deleteBookApi(id) {
+  const response = await fetch(
+    `http://localhost:3001/api/books/${encodeURIComponent(id)}/delete`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    }
+  );
+
+  if (!response.ok) {
+    let message = 'Failed to delete the story.';
+
+    try {
+      const errorBody = await response.json();
+
+      if (errorBody?.error) {
+        message = errorBody.error;
+      }
+    } catch {}
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}
+
 // Prompt schemas ---------------------------------------------------------------
 
 const DEFAULT_CONFIG = {
@@ -1823,7 +1852,29 @@ export default function useStorybook() {
 
       await loadBookshelf();
     };
+  const deleteSavedBook = async (id) => {
+  const confirmed = window.confirm(
+    'Delete this story and all its chapters? This cannot be undone.'
+  );
 
+  if (!confirmed) return false;
+
+  await deleteBookApi(id);
+
+  setBookshelf((previous) =>
+    previous.filter(
+      (savedBook) => String(savedBook.id) !== String(id)
+    )
+  );
+
+  if (String(bookRef.current?.id) === String(id)) {
+    setBook(null);
+    setStarted(false);
+    setView('stories');
+  }
+
+  return true;
+};
   const saveStory =
     async (title) => {
       const current =
@@ -1974,6 +2025,7 @@ export default function useStorybook() {
     saveChapterEdit,
     addChapterAfter,
     deleteChapter,
+    deleteSavedBook,
     saveStory,
     openBook
   };

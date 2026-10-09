@@ -1,13 +1,23 @@
+
 import http from "node:http";
 import { generateStructured } from "./gemini.js";
-import { createBook, getBook, listBooks, updateBook } from "./books.js";
+import {
+  createBook,
+  getBook,
+  listBooks,
+  updateBook,
+  deleteBook
+} from "./books.js";
 import { generateImage } from "./images.js";
 
 const PORT = Number(process.env.PORT) || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+const CORS_ORIGIN =
+  process.env.CORS_ORIGIN || "http://localhost:5173";
 
 function writeJson(res, status, payload) {
-  res.writeHead(status, { "Content-Type": "application/json" });
+  res.writeHead(status, {
+    "Content-Type": "application/json"
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -34,8 +44,11 @@ const server = http.createServer(async (req, res) => {
 
     if (req.url === "/api/gemini") {
       const { prompt, schema } = data;
+
       if (!prompt || !schema) {
-        writeJson(res, 400, { error: "prompt and schema are required" });
+        writeJson(res, 400, {
+          error: "prompt and schema are required"
+        });
         return;
       }
 
@@ -69,8 +82,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     const getBookMatch = req.url.match(/^\/api\/books\/(\d+)\/get$/);
+
     if (getBookMatch) {
       const book = await getBook(getBookMatch[1]);
+
       if (!book) {
         writeJson(res, 404, { error: "Book not found" });
         return;
@@ -81,14 +96,30 @@ const server = http.createServer(async (req, res) => {
     }
 
     const updateBookMatch = req.url.match(/^\/api\/books\/(\d+)$/);
+
     if (updateBookMatch) {
       const book = await updateBook(updateBookMatch[1], data);
+
       if (!book) {
         writeJson(res, 404, { error: "Book not found" });
         return;
       }
 
       writeJson(res, 200, book);
+      return;
+    }
+
+    const deleteBookMatch = req.url.match(/^\/api\/books\/(\d+)\/delete$/);
+
+    if (deleteBookMatch) {
+      const deleted = await deleteBook(deleteBookMatch[1]);
+
+      if (!deleted) {
+        writeJson(res, 404, { error: "Book not found" });
+        return;
+      }
+
+      writeJson(res, 200, { success: true });
       return;
     }
 
