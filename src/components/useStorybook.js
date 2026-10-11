@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { CHAPTER_RANGES} from './story/storyOptions';
+import { CHAPTER_RANGES } from './story/storyOptions';
 import { generateInitialCover, maybeRefreshCover } from './story/coverGenerator';
 import { illustrateChapter } from './story/paragraphIllustrator';
 
@@ -10,7 +10,6 @@ const countWords = (text) =>
     ? (text.trim().match(/\S+/g) || []).length
     : 0;
 
-// Resolve the [min, max] target range for a chapter given its length mode.
 function resolveRange(mode, wordMin, wordMax) {
   if (mode === 'Custom') {
     const min = Number(wordMin) || 0;
@@ -22,14 +21,12 @@ function resolveRange(mode, wordMin, wordMax) {
   return [preset[0], preset[1]];
 }
 
-// Local Node API helpers -------------------------------------------------------
+// API helpers -----------------------------------------------------------------
 
 async function callGemini(prompt, schema) {
   const response = await fetch('http://localhost:3001/api/gemini', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, schema })
   });
 
@@ -38,10 +35,7 @@ async function callGemini(prompt, schema) {
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
@@ -53,21 +47,16 @@ async function callGemini(prompt, schema) {
 async function createBookApi(book) {
   const response = await fetch('http://localhost:3001/api/books', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(book)
   });
 
   if (!response.ok) {
-    let message = `Failed to create book.`;
+    let message = 'Failed to create book.';
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
@@ -81,22 +70,17 @@ async function listBooksApi(limit = 50) {
     `http://localhost:3001/api/books/query?limit=${encodeURIComponent(limit)}`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ limit })
     }
   );
 
   if (!response.ok) {
-    let message = `Failed to load stories.`;
+    let message = 'Failed to load stories.';
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
@@ -110,22 +94,17 @@ async function getBookApi(id) {
     `http://localhost:3001/api/books/${encodeURIComponent(id)}/get`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     }
   );
 
   if (!response.ok) {
-    let message = `Failed to load the story.`;
+    let message = 'Failed to load the story.';
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
@@ -139,22 +118,17 @@ async function updateBookApi(id, updates) {
     `http://localhost:3001/api/books/${encodeURIComponent(id)}`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     }
   );
 
   if (!response.ok) {
-    let message = `Failed to update the story.`;
+    let message = 'Failed to update the story.';
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
@@ -168,9 +142,7 @@ async function deleteBookApi(id) {
     `http://localhost:3001/api/books/${encodeURIComponent(id)}/delete`,
     {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     }
   );
@@ -180,16 +152,55 @@ async function deleteBookApi(id) {
 
     try {
       const errorBody = await response.json();
-
-      if (errorBody?.error) {
-        message = errorBody.error;
-      }
+      if (errorBody?.error) message = errorBody.error;
     } catch {}
 
     throw new Error(message);
   }
 
   return response.json();
+}
+
+// Chapter persistence helpers -------------------------------------------------
+
+// Only chapters explicitly marked as saved are sent to the database.
+// chapter_number preserves a chapter's original position if other chapters
+// have not been saved.
+function savedChaptersOnly(chapters = []) {
+  return chapters
+    .filter((chapter) => chapter.saved === true)
+    .map((chapter, index) => ({
+      ...chapter,
+      chapter_number:
+        Number(chapter.chapter_number) || index + 1
+    }))
+    .sort((a, b) => a.chapter_number - b.chapter_number);
+}
+
+function normalizeLoadedChapters(chapters = []) {
+  return [...chapters]
+    .sort(
+      (a, b) =>
+        (Number(a.chapter_number) || 0) -
+        (Number(b.chapter_number) || 0)
+    )
+    .map((chapter, index) => ({
+      ...chapter,
+      chapter_number:
+        Number(chapter.chapter_number) || index + 1,
+      saved: true
+    }));
+}
+
+function getNextChapterNumber(chapters = []) {
+  return chapters.reduce(
+    (highest, chapter, index) =>
+      Math.max(
+        highest,
+        Number(chapter.chapter_number) || index + 1
+      ),
+    0
+  ) + 1;
 }
 
 // Prompt schemas ---------------------------------------------------------------
@@ -270,7 +281,7 @@ const questionsSchema = {
 
 // Prompt builders -------------------------------------------------------------
 
-function buildCharacterText(characters) {
+function buildCharacterText(characters = []) {
   const filled = characters.filter((c) => c.name && c.name.trim());
 
   if (!filled.length) return '';
@@ -368,19 +379,16 @@ function storyLevelText(book) {
 
   if (book.perspective && book.perspective !== 'Auto') {
     const d = perspectiveDirective(book.perspective);
-
     if (d) parts.push(d);
   }
 
   if (book.audience && book.audience !== 'Auto') {
     const d = audienceDirective(book.audience);
-
     if (d) parts.push(d);
   }
 
   if (book.format && book.format !== 'Auto') {
     const d = formatDirective(book.format);
-
     if (d) parts.push(d);
   }
 
@@ -410,16 +418,11 @@ function persistentContextStyleFree(book) {
     parts.push(`Overall story genre: ${book.genre}.`);
   }
 
-  if (
-    book.setting &&
-    book.setting.trim() &&
-    book.setting !== 'Auto'
-  ) {
+  if (book.setting && book.setting.trim() && book.setting !== 'Auto') {
     parts.push(`Setting / World: ${book.setting.trim()}.`);
   }
 
   const charText = buildCharacterText(book.characters || []);
-
   if (charText) parts.push(charText);
 
   return parts.join('\n\n');
@@ -431,7 +434,6 @@ function persistentContext(book) {
   parts.push(`Original story idea (do not lose sight of this): ${book.idea}`);
 
   const sl = storyLevelText(book);
-
   if (sl) parts.push(sl);
 
   if (
@@ -442,16 +444,11 @@ function persistentContext(book) {
     parts.push(`Overall story genre: ${book.genre}.`);
   }
 
-  if (
-    book.setting &&
-    book.setting.trim() &&
-    book.setting !== 'Auto'
-  ) {
+  if (book.setting && book.setting.trim() && book.setting !== 'Auto') {
     parts.push(`Setting / World: ${book.setting.trim()}.`);
   }
 
   const charText = buildCharacterText(book.characters || []);
-
   if (charText) parts.push(charText);
 
   return parts.join('\n\n');
@@ -483,22 +480,15 @@ function recentChaptersBlock(book, maxChars) {
 
   for (let i = chapters.length - 2; i >= 0; i--) {
     const c = chapters[i];
-    const added =
-      (c.heading?.length || 0) +
-      (c.body?.length || 0);
+    const added = (c.heading?.length || 0) + (c.body?.length || 0);
 
     if (used + added > maxChars) break;
 
-    block.unshift(
-      `[Earlier chapter — ${c.heading}]\n${c.body}`
-    );
-
+    block.unshift(`[Earlier chapter — ${c.heading}]\n${c.body || ''}`);
     used += added;
   }
 
-  return `Recent chapter text (use this for tone, style and immediate continuity):\n${block.join(
-    '\n\n'
-  )}`;
+  return `Recent chapter text (use this for tone, style and immediate continuity):\n${block.join('\n\n')}`;
 }
 
 function chapterGenreText(book, index) {
@@ -518,11 +508,9 @@ function chapterGenreText(book, index) {
 
 function sharedContext(book) {
   const parts = [];
+  const nextNumber = getNextChapterNumber(book.chapters || []);
 
-  parts.push(
-    `Write Chapter ${(book.chapters?.length || 0) + 1} of the story "${book.title}".`
-  );
-
+  parts.push(`Write Chapter ${nextNumber} of the story "${book.title}".`);
   parts.push(persistentContext(book));
 
   if (book.summary && book.summary.trim()) {
@@ -532,7 +520,6 @@ function sharedContext(book) {
   }
 
   const recent = recentChaptersBlock(book, 3500);
-
   if (recent) parts.push(recent);
 
   const directions = (book.directions || []).filter(
@@ -554,11 +541,9 @@ function sharedContext(book) {
 
 function genPrompt(book, currentInstruction, chapterSettings) {
   const parts = [];
+  const nextNumber = getNextChapterNumber(book.chapters || []);
 
-  parts.push(
-    `Write Chapter ${(book.chapters?.length || 0) + 1} of the story "${book.title}".`
-  );
-
+  parts.push(`Write Chapter ${nextNumber} of the story "${book.title}".`);
   parts.push(persistentContext(book));
 
   if (book.summary && book.summary.trim()) {
@@ -568,11 +553,9 @@ function genPrompt(book, currentInstruction, chapterSettings) {
   }
 
   const recent = recentChaptersBlock(book, 3500);
-
   if (recent) parts.push(recent);
 
   const langNote = languageOverrideNote(book);
-
   if (langNote) parts.push(langNote);
 
   if ((book.directions || []).length) {
@@ -607,9 +590,7 @@ function genPrompt(book, currentInstruction, chapterSettings) {
       `Length for this chapter ONLY: aim for at least approximately ${min.toLocaleString()} words in a single continuous chapter.`
     );
   } else {
-    parts.push(
-      'Length for this chapter ONLY: a reasonably full chapter (a few hundred words).'
-    );
+    parts.push('Length for this chapter ONLY: a reasonably full chapter (a few hundred words).');
   }
 
   if (currentInstruction && currentInstruction.trim()) {
@@ -623,22 +604,20 @@ function genPrompt(book, currentInstruction, chapterSettings) {
   );
 
   parts.push(
-    'Write ONE chapter only. Return an object with a "chapter" that has a short evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters. Also return the story\'s overall "title" (keep it unchanged unless it genuinely no longer fits).'
+    book.chapters?.length
+      ? 'Write ONE chapter only. Return an object with a "chapter" that has a short evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters. Also return the story\'s overall "title" unchanged unless it genuinely no longer fits.'
+      : 'Create a concise, memorable overall book title inspired by the story idea. Do not copy or simply rephrase the story idea as the title. The book title must be distinct from the chapter heading. Write ONE chapter only. Return an object with a "title" and a "chapter" that has a short evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters.'
   );
 
   return parts.join('\n\n');
 }
 
-function continuePrompt(
-  book,
-  currentBody,
-  pendingInstruction,
-  chapterSettings
-) {
+function continuePrompt(book, currentBody, pendingInstruction, chapterSettings) {
+  const nextNumber = getNextChapterNumber(book.chapters || []);
   const parts = [];
 
   parts.push(
-    `Continue the CURRENT Chapter ${(book.chapters?.length || 0) + 1} of "${book.title}" exactly where it left off. This is the SAME chapter — do not start a new chapter, do not resolve the whole story.`
+    `Continue the CURRENT Chapter ${nextNumber} of "${book.title}" exactly where it left off. This is the SAME chapter — do not start a new chapter, do not resolve the whole story.`
   );
 
   parts.push(
@@ -647,20 +626,13 @@ function continuePrompt(
 
   parts.push(
     `Ongoing plot goals for this chapter:\n${persistentContext(book)}\n${
-      chapterGenreText(
-        book,
-        (book.chapters?.length || 0) - 1
-      )
-        ? `Chapter genre: ${chapterGenreText(
-            book,
-            (book.chapters?.length || 0) - 1
-          )}.`
+      chapterGenreText(book, (book.chapters?.length || 0) - 1)
+        ? `Chapter genre: ${chapterGenreText(book, (book.chapters?.length || 0) - 1)}.`
         : ''
     }`
   );
 
   const langNote = languageOverrideNote(book);
-
   if (langNote) parts.push(langNote);
 
   const [min, max] = resolveRange(
@@ -680,9 +652,7 @@ function continuePrompt(
   }
 
   if (pendingInstruction && pendingInstruction.trim()) {
-    parts.push(
-      `Additional author direction for the continuation:\n${pendingInstruction.trim()}`
-    );
+    parts.push(`Additional author direction for the continuation:\n${pendingInstruction.trim()}`);
   }
 
   parts.push(
@@ -705,46 +675,36 @@ function summaryUpdatePrompt(book, changedChapters) {
     );
   }
 
-  parts.push(
-    `The latest/provided story content to fold in:\n${changedChapters || ''}`
-  );
+  parts.push(`The latest/provided story content to fold in:\n${changedChapters || ''}`);
 
   parts.push(
     'Preserve important facts: major events, character identities, character relationships and development, important locations, world rules, discoveries, conflicts, important objects, decisions, unresolved plot threads, promises or plans set up for later. Keep it compact but information-dense — a few tight paragraphs. Do not include the full chapter text; this is a summary only.'
   );
 
   parts.push('Return the summary as a plain string.');
-
   return parts.join('\n\n');
 }
 
 function questionsPrompt(book) {
   const parts = [];
 
-  parts.push(
-    `You are helping the author continue the story "${book.title}".`
-  );
-
+  parts.push(`You are helping the author continue the story "${book.title}".`);
   parts.push(persistentContextStyleFree(book));
 
   if (book.summary && book.summary.trim()) {
-    parts.push(
-      `Rolling summary of the story so far:\n${book.summary}`
-    );
+    parts.push(`Rolling summary of the story so far:\n${book.summary}`);
   }
 
   const last = (book.chapters || []).slice(-1)[0];
 
   if (last) {
     parts.push(
-      `The story just ended with chapter "${last.heading}":\n${(
-        last.body || ''
-      ).slice(0, 1200)}`
+      `The story just ended with chapter "${last.heading}":\n${(last.body || '').slice(0, 1200)}`
     );
   }
 
   parts.push(
-    `Propose 2-3 short, relevant, contextual questions or prompts the author might answer to guide the NEXT chapter. They must grow from the actual story, its characters, setting and unresolved threads — not generic or random. Phrase them as suggestions in the author's voice, e.g. "Have them discover what's inside the vault", "Introduce a rival who knows about the hidden city", "Jump forward a season and show the consequences". Each should be concise.`
+    'Propose 2-3 short, relevant, contextual questions or prompts the author might answer to guide the NEXT chapter. They must grow from the actual story, its characters, setting and unresolved threads — not generic or random. Phrase them as suggestions in the author\'s voice, e.g. "Have them discover what\'s inside the vault", "Introduce a rival who knows about the hidden city", "Jump forward a season and show the consequences". Each should be concise.'
   );
 
   return parts.join('\n\n');
@@ -761,34 +721,37 @@ export default function useStorybook() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [characters, setCharacters] = useState([]);
   const [setting, setSetting] = useState('');
-  const [chapterSettings, setChapterSettings] =
-    useState(DEFAULT_CHAPTER);
+  const [chapterSettings, setChapterSettings] = useState(DEFAULT_CHAPTER);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [coverStatus, setCoverStatus] = useState('idle');
-  const [illustratingChapters, setIllustratingChapters] =
-    useState({});
+  const [illustratingChapters, setIllustratingChapters] = useState({});
 
   const bookRef = useRef(null);
   bookRef.current = book;
 
   const generatingRef = useRef(false);
-
   const statusRef = useRef(status);
   statusRef.current = status;
 
+  // Persist only explicitly saved chapters.
   const updateBook = async (id, updates) => {
-    return updateBookApi(id, updates);
+    const safeUpdates = { ...updates };
+
+    if (Array.isArray(safeUpdates.chapters)) {
+      safeUpdates.chapters = savedChaptersOnly(safeUpdates.chapters);
+      safeUpdates.chapter_count = safeUpdates.chapters.length;
+    }
+
+    return updateBookApi(id, safeUpdates);
   };
 
-  const illustrateChapterAt = async (
-    bookState,
-    chapterIndex
-  ) => {
-    const chapter =
-      bookState?.chapters?.[chapterIndex];
+  // Update a chapter's illustrations in the working copy. If the chapter has
+  // already been explicitly saved, its updated illustrations can be persisted.
+  const illustrateChapterAt = async (bookState, chapterIndex) => {
+    const chapter = bookState?.chapters?.[chapterIndex];
 
     if (!chapter || !chapter.body?.trim()) return;
 
@@ -798,127 +761,99 @@ export default function useStorybook() {
     }));
 
     try {
-      const { illustrations } =
-        await illustrateChapter(
-          bookState,
-          chapter
-        );
-
+      const { illustrations } = await illustrateChapter(bookState, chapter);
       const current = bookRef.current;
 
       if (!current) return;
 
-      const updated = current.chapters.map(
-        (c, i) =>
-          i === chapterIndex
-            ? {
-                ...c,
-                illustrations: {
-                  ...(c.illustrations || {}),
-                  ...illustrations
-                }
+      const updated = (current.chapters || []).map((c, i) =>
+        i === chapterIndex
+          ? {
+              ...c,
+              illustrations: {
+                ...(c.illustrations || {}),
+                ...illustrations
               }
-            : c
+            }
+          : c
       );
 
-      const nextBook = {
-        ...current,
-        chapters: updated
-      };
-
+      const nextBook = { ...current, chapters: updated };
       setBook(nextBook);
 
-      try {
-        await updateBook(current.id, {
-          chapters: updated,
-          chapter_count: updated.length
-        });
-      } catch {
-        /* persist best-effort */
+      // Illustrations must not cause an unsaved chapter to be stored.
+      if (updated[chapterIndex]?.saved === true) {
+        try {
+          await updateBook(current.id, { chapters: updated });
+        } catch {
+          /* illustration persistence is best-effort */
+        }
       }
     } catch {
       /* illustration best-effort */
     } finally {
       setIllustratingChapters((prev) => {
-        const n = { ...prev };
-        delete n[chapterIndex];
-        return n;
+        const next = { ...prev };
+        delete next[chapterIndex];
+        return next;
       });
     }
   };
 
-  const loadBookshelf = useCallback(
-    async () => {
-      try {
-        const shelf =
-          await listBooksApi(50);
+  const loadBookshelf = useCallback(async () => {
+    try {
+      const shelf = await listBooksApi(50);
 
-        setBookshelf(
-          shelf.map((b) => ({
-            id: b.id,
-            title: b.title,
-            idea: b.idea || '',
-            genre: b.genre,
-            chapters:
-              Array.isArray(b.chapters)
-                ? b.chapters.length
-                : Number(b.chapter_count) || 0,
-            updated:
-              b.updated_date ||
-              b.updated_at,
-            cover_url:
-              b.cover_url || null
-          }))
-        );
-      } catch {
-        /* bookshelf best-effort */
-      }
-    },
-    []
-  );
+      setBookshelf(
+        shelf.map((b) => ({
+          id: b.id,
+          title: b.title,
+          idea: b.idea || '',
+          genre: b.genre,
+          chapters: Array.isArray(b.chapters)
+            ? b.chapters.length
+            : Number(b.chapter_count) || 0,
+          updated: b.updated_date || b.updated_at,
+          cover_url: b.cover_url || null
+        }))
+      );
+    } catch {
+      /* bookshelf best-effort */
+    }
+  }, []);
 
-  const updateSummary = async (
-    chaptersText
-  ) => {
+  // Update the rolling summary in memory. Database persistence happens only
+  // when the author explicitly saves a chapter.
+  const updateSummary = async (chaptersText, { persist = false } = {}) => {
     const current = bookRef.current;
-
     if (!current?.id) return false;
 
     setStatus('summary');
 
     try {
       const result = await callGemini(
-        summaryUpdatePrompt(
-          current,
-          chaptersText
-        ),
+        summaryUpdatePrompt(current, chaptersText),
         {
           type: 'object',
-          properties: {
-            summary: {
-              type: 'string'
-            }
-          },
+          properties: { summary: { type: 'string' } },
           required: ['summary']
         }
       );
 
-      const newSummary =
-        (result && result.summary) || '';
+      const newSummary = (result && result.summary) || '';
+      const latest = bookRef.current;
 
-      const next = {
-        ...bookRef.current,
-        summary: newSummary
-      };
+      if (!latest) return false;
 
+      const next = { ...latest, summary: newSummary };
       setBook(next);
 
-      try {
-        await updateBook(current.id, {
-          summary: newSummary
-        });
-      } catch {
-        /* stored separately */
+      if (persist) {
+        try {
+          await updateBook(current.id, { summary: newSummary });
+        } catch {
+          /* summary persistence is best-effort */
+        }
       }
 
       return true;
@@ -929,36 +864,23 @@ export default function useStorybook() {
     }
   };
 
-  const loadSuggestions = useCallback(
-    async () => {
-      setSuggestions([]);
+  const loadSuggestions = useCallback(async () => {
+    setSuggestions([]);
 
-      const current = bookRef.current;
+    const current = bookRef.current;
 
-      if (
-        !current?.id ||
-        !(current.chapters || []).length
-      ) {
-        return;
-      }
+    if (!current?.id || !(current.chapters || []).length) return;
 
-      try {
-        const res = await callGemini(
-          questionsPrompt(current),
-          questionsSchema
-        );
+    try {
+      const res = await callGemini(questionsPrompt(current), questionsSchema);
 
-        setSuggestions(
-          Array.isArray(res?.questions)
-            ? res.questions.slice(0, 3)
-            : []
-        );
-      } catch {
-        /* suggestions optional */
-      }
-    },
-    []
-  );
+      setSuggestions(
+        Array.isArray(res?.questions) ? res.questions.slice(0, 3) : []
+      );
+    } catch {
+      /* suggestions optional */
+    }
+  }, []);
 
   const startNewStory = useCallback(() => {
     setBook(null);
@@ -990,27 +912,21 @@ export default function useStorybook() {
     setView('stories');
   }, []);
 
-  // Generate exactly ONE chapter (Chapter 1) from a new story.
+  // Generate Chapter 1, but do not persist its text.
   const generate = async () => {
     if (generatingRef.current) return;
 
     generatingRef.current = true;
-
     setStatus('story');
     setError('');
     setSuggestions([]);
 
     try {
       if (!idea.trim()) {
-        throw new Error(
-          'Please enter a story idea first.'
-        );
+        throw new Error('Please enter a story idea first.');
       }
 
-      const titleGuess =
-        idea.trim().length > 58
-          ? idea.trim().slice(0, 58) + '…'
-          : idea.trim();
+      const titleGuess = 'Untitled Story';
 
       const base = {
         idea: idea.trim(),
@@ -1019,27 +935,14 @@ export default function useStorybook() {
         format: config.format,
         language: config.language,
         characters,
-        setting:
-          setting.trim() || 'Auto',
+        setting: setting.trim() || 'Auto',
         summary: '',
         directions: []
       };
 
       const res = await callGemini(
-        genPrompt(
-          {
-            ...base,
-            title: titleGuess
-          },
-          '',
-          chapterSettings
-        ),
+        genPrompt({ ...base, title: titleGuess, chapters: [] }, '', chapterSettings),
         nextChapterSchema
-      );
-
-      console.log(
-        'OpenRouter Chapter 1 response:',
-        res
       );
 
       const ch = res?.chapter;
@@ -1050,56 +953,44 @@ export default function useStorybook() {
         );
       }
 
-      const title =
-        (res?.title &&
-          res.title.trim()) ||
-        titleGuess;
+      const title = (res?.title && res.title.trim()) || titleGuess;
 
-      const body =
-        await ensureChapterLength(
-          base,
-          title,
-          ch,
-          [],
-          chapterSettings
-        );
+      const body = await ensureChapterLength(
+        base,
+        title,
+        ch,
+        [],
+        chapterSettings
+      );
 
       const newCh = {
-        heading: (
-          ch.heading ||
-          'Chapter 1'
-        ).trim(),
+        heading: (ch.heading || 'Chapter 1').trim(),
         body,
         mode: 'ai',
-        genre:
-          chapterSettings.genre,
-        lengthMode:
-          chapterSettings.lengthMode,
-        wordMin:
-          chapterSettings.wordMin,
-        wordMax:
-          chapterSettings.wordMax,
-        wordCount:
-          countWords(body)
+        genre: chapterSettings.genre,
+        lengthMode: chapterSettings.lengthMode,
+        wordMin: chapterSettings.wordMin,
+        wordMax: chapterSettings.wordMax,
+        wordCount: countWords(body),
+        chapter_number: 1,
+        saved: false
       };
 
-      const created =
-        await createBookApi({
-          ...base,
-          title,
-          genre:
-            chapterSettings.genre,
-          chapter_count: 1,
-          cover_url: null,
-          chapters: [newCh]
-        });
+      // Create the story metadata only. No chapter text is stored.
+      const created = await createBookApi({
+        ...base,
+        title,
+        genre: chapterSettings.genre,
+        chapter_count: 0,
+        cover_url: null,
+        chapters: []
+      });
 
       const nextBook = {
         id: created.id,
         title,
         ...base,
-        genre:
-          chapterSettings.genre,
+        genre: chapterSettings.genre,
         chapters: [newCh]
       };
 
@@ -1108,15 +999,12 @@ export default function useStorybook() {
       setCharacters([]);
       setSetting('');
       setConfig(DEFAULT_CONFIG);
-      setChapterSettings(
-        DEFAULT_CHAPTER
-      );
+      setChapterSettings(DEFAULT_CHAPTER);
 
       await loadBookshelf();
 
-      await updateSummary(
-        `[Chapter 1 — ${newCh.heading}]\n${newCh.body}`
-      );
+      // Summary is working-copy context until a chapter is explicitly saved.
+      await updateSummary(`[Chapter 1 — ${newCh.heading}]\n${newCh.body}`);
 
       await loadSuggestions();
 
@@ -1124,33 +1012,16 @@ export default function useStorybook() {
 
       try {
         const coverBook = {
-          id: created.id,
-          title,
-          idea: nextBook.idea,
-          genre:
-            chapterSettings.genre,
-          setting: base.setting,
+          ...nextBook,
           characters,
           chapters: [newCh],
-          summary:
-            bookRef.current?.summary ||
-            newCh.body
+          summary: bookRef.current?.summary || newCh.body
         };
 
-        const url =
-          await generateInitialCover(
-            coverBook
-          );
+        const url = await generateInitialCover(coverBook);
 
         if (url) {
-          setBook((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  cover_url: url
-                }
-              : prev
-          );
+          setBook((prev) => (prev ? { ...prev, cover_url: url } : prev));
         }
       } catch {
         /* cover best-effort */
@@ -1158,10 +1029,7 @@ export default function useStorybook() {
         setCoverStatus('idle');
       }
 
-      await illustrateChapterAt(
-        nextBook,
-        0
-      );
+      await illustrateChapterAt(nextBook, 0);
     } catch (err) {
       setError(
         err?.message ||
@@ -1173,7 +1041,6 @@ export default function useStorybook() {
     }
   };
 
-  // Word-count enforcement.
   const ensureChapterLength = async (
     base,
     title,
@@ -1181,729 +1048,474 @@ export default function useStorybook() {
     prevChapters,
     chapterSettings
   ) => {
-    const [min] =
-      resolveRange(
-        chapterSettings?.lengthMode,
-        chapterSettings?.wordMin,
-        chapterSettings?.wordMax
-      );
+    const [min] = resolveRange(
+      chapterSettings?.lengthMode,
+      chapterSettings?.wordMin,
+      chapterSettings?.wordMax
+    );
 
     if (!min) return ch.body;
 
     let body = ch.body || '';
     let guard = 0;
 
-    while (
-      countWords(body) < min &&
-      guard < 3
-    ) {
-      const res =
-        await callGemini(
-          continuePrompt(
-            {
-              ...base,
-              title,
-              chapters:
-                prevChapters
-            },
-            body,
-            '',
-            chapterSettings
-          ),
-          continueChapterSchema
-        );
+    while (countWords(body) < min && guard < 3) {
+      const res = await callGemini(
+        continuePrompt(
+          { ...base, title, chapters: prevChapters },
+          body,
+          '',
+          chapterSettings
+        ),
+        continueChapterSchema
+      );
 
-      const piece =
-        res?.chapter?.body
-          ?.trim?.();
-
+      const piece = res?.chapter?.body?.trim?.();
       if (!piece) break;
 
-      body = (
-        body.trimEnd() +
-        '\n\n' +
-        piece
-      ).trim();
-
+      body = (body.trimEnd() + '\n\n' + piece).trim();
       guard++;
     }
 
     return body;
   };
 
-  const generateNextChapter =
-    async (direction) => {
-      if (generatingRef.current) {
-        if (
-          statusRef.current ===
-          'idle'
-        ) {
-          generatingRef.current =
-            false;
-        } else {
-          return;
-        }
+  const generateNextChapter = async (direction) => {
+    if (generatingRef.current) {
+      if (statusRef.current === 'idle') {
+        generatingRef.current = false;
+      } else {
+        return;
       }
+    }
 
-      const current =
-        bookRef.current;
+    const current = bookRef.current;
+    if (!current?.id) return;
 
-      if (!current?.id) return;
+    generatingRef.current = true;
+    setStatus('next');
+    setError('');
+    setSuggestions([]);
 
-      generatingRef.current = true;
-
-      setStatus('next');
-      setError('');
-      setSuggestions([]);
-
-      try {
-        const res =
-          await callGemini(
-            genPrompt(
-              current,
-              direction,
-              chapterSettings
-            ),
-            nextChapterSchema
-          );
-
-        const ch =
-          res?.chapter;
-
-        if (!ch?.body?.trim()) {
-          throw new Error(
-            'The chapter did not come back in a readable format. Please try again.'
-          );
-        }
-
-        const title =
-          (res?.title &&
-            res.title.trim()) ||
-          current.title;
-
-        const body =
-          await ensureChapterLength(
-            current,
-            title,
-            ch,
-            current.chapters ||
-              [],
-            chapterSettings
-          );
-
-        const newCh = {
-          heading: (
-            ch.heading ||
-            `Chapter ${
-              (current.chapters
-                ?.length || 0) + 1
-            }`
-          ).trim(),
-          body,
-          mode: 'ai',
-          genre:
-            chapterSettings.genre,
-          lengthMode:
-            chapterSettings.lengthMode,
-          wordMin:
-            chapterSettings.wordMin,
-          wordMax:
-            chapterSettings.wordMax,
-          wordCount:
-            countWords(body)
-        };
-
-        const chapters = [
-          ...(current.chapters ||
-            []),
-          newCh
-        ];
-
-        const directions =
-          direction &&
-          direction.trim()
-            ? [
-                ...(current.directions ||
-                  []),
-                {
-                  text:
-                    direction.trim(),
-                  chapter_index:
-                    current.chapters
-                      ?.length || 0,
-                  created_at:
-                    Date.now()
-                }
-              ]
-            : current.directions ||
-              [];
-
-        const next = {
-          ...current,
-          title,
-          chapters,
-          directions
-        };
-
-        setBook(next);
-
-        await updateBook(
-          current.id,
-          {
-            title,
-            chapters,
-            directions,
-            chapter_count:
-              chapters.length
-          }
-        );
-
-        await updateSummary(
-          `[Chapter ${chapters.length} — ${newCh.heading}]\n${newCh.body}`
-        );
-
-        setCoverStatus('painting');
-
-        try {
-          const coverBook = {
-            ...bookRef.current,
-            characters:
-              current.characters
-          };
-
-          const url =
-            await maybeRefreshCover(
-              coverBook
-            );
-
-          if (url) {
-            setBook((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    cover_url: url
-                  }
-                : prev
-            );
-          }
-        } catch {
-          /* cover best-effort */
-        } finally {
-          setCoverStatus('idle');
-        }
-
-        await illustrateChapterAt(
-          next,
-          current.chapters
-            ?.length || 0
-        );
-
-        await loadSuggestions();
-        await loadBookshelf();
-      } catch (err) {
-        setError(
-          err?.message ||
-            'That chapter could not be generated. Please try again.'
-        );
-      } finally {
-        setStatus('idle');
-        setChapterSettings(
-          DEFAULT_CHAPTER
-        );
-        generatingRef.current =
-          false;
-      }
-    };
-
-  const regenerateChapter =
-    async (index) => {
-      const current =
-        bookRef.current;
-
-      if (!current?.id) return;
-
-      setStatus(
-        `regen:${index}`
-      );
-      setError('');
-
-      try {
-        const res =
-          await callGemini(
-            regeneratePrompt(
-              current,
-              index
-            ),
-            chapterSchema
-          );
-
-        if (!res?.body?.trim()) {
-          throw new Error(
-            'The chapter did not come back in a readable format. Please try again.'
-          );
-        }
-
-        const oldCh =
-          current.chapters[index];
-
-        const body =
-          await ensureChapterLength(
-            current,
-            current.title,
-            {
-              heading:
-                res.heading ||
-                oldCh.heading,
-              body: res.body
-            },
-            current.chapters ||
-              [],
-            {
-              lengthMode:
-                oldCh?.lengthMode,
-              wordMin:
-                oldCh?.wordMin,
-              wordMax:
-                oldCh?.wordMax
-            }
-          );
-
-        const newCh = {
-          heading: (
-            res.heading ||
-            oldCh.heading
-          ).trim(),
-          body,
-          mode:
-            oldCh.mode || 'ai',
-          genre:
-            oldCh.genre,
-          lengthMode:
-            oldCh.lengthMode,
-          wordMin:
-            oldCh.wordMin,
-          wordMax:
-            oldCh.wordMax,
-          wordCount:
-            countWords(body)
-        };
-
-        const chapters =
-          current.chapters.map(
-            (c, i) =>
-              i === index
-                ? newCh
-                : c
-          );
-
-        const next = {
-          ...current,
-          chapters
-        };
-
-        setBook(next);
-
-        await updateBook(
-          current.id,
-          {
-            chapters,
-            chapter_count:
-              chapters.length
-          }
-        );
-
-        await updateSummary(
-          `[Chapter ${index + 1} — ${newCh.heading}]\n${newCh.body}`
-        );
-
-        const preRegen = {
-          ...bookRef.current,
-          chapters
-        };
-
-        setBook((prev) => {
-          const updated =
-            (prev?.chapters ||
-              []).map(
-              (c, i) =>
-                i === index
-                  ? {
-                      ...c,
-                      illustrations: {}
-                    }
-                  : c
-            );
-
-          return prev
-            ? {
-                ...prev,
-                chapters:
-                  updated
-              }
-            : prev;
-        });
-
-        await illustrateChapterAt(
-          preRegen,
-          index
-        );
-
-        await loadBookshelf();
-      } catch (err) {
-        setError(
-          err?.message ||
-            'That chapter could not be regenerated. Please try again.'
-        );
-      } finally {
-        setStatus('idle');
-      }
-    };
-
-  const regeneratePrompt =
-    (book, index) => {
-      const parts = [];
-
-      parts.push(
-        `Rewrite ONLY "Chapter ${
-          index + 1
-        }" of the story "${book.title}". Keep the rest of the story exactly as it is — do not change events in other chapters.`
+    try {
+      const res = await callGemini(
+        genPrompt(current, direction, chapterSettings),
+        nextChapterSchema
       );
 
-      parts.push(
-        persistentContext(book)
-      );
+      const ch = res?.chapter;
 
-      if (
-        book.summary &&
-        book.summary.trim()
-      ) {
-        parts.push(
-          `Rolling summary of the story so far (binding continuity):\n${book.summary}`
+      if (!ch?.body?.trim()) {
+        throw new Error(
+          'The chapter did not come back in a readable format. Please try again.'
         );
       }
 
-      const others =
-        (book.chapters || [])
-          .map(
-            (c, i) =>
-              i === index
-                ? ''
-                : `[Chapter ${
-                    i + 1
-                  } — ${c.heading}]\n${(
-                    c.body || ''
-                  ).slice(0, 900)}`
-          )
-          .filter(Boolean)
-          .join('\n\n');
+      const title = (res?.title && res.title.trim()) || current.title;
+      const chapterNumber = getNextChapterNumber(current.chapters || []);
 
-      if (others) {
-        parts.push(
-          `For continuity, here are the other chapters:\n${others}`
-        );
-      }
-
-      const oldCh =
-        book.chapters[index];
-
-      if (
-        oldCh?.genre &&
-        oldCh.genre !== 'Auto' &&
-        oldCh.genre !== 'Custom'
-      ) {
-        parts.push(
-          `Preserve the genre for this chapter: ${oldCh.genre}.`
-        );
-      }
-
-      const [min, max] =
-        resolveRange(
-          oldCh?.lengthMode,
-          oldCh?.wordMin,
-          oldCh?.wordMax
-        );
-
-      if (max) {
-        parts.push(
-          `Aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words for this rewritten chapter.`
-        );
-      } else if (min) {
-        parts.push(
-          `Aim for at least approximately ${min.toLocaleString()} words for this rewritten chapter.`
-        );
-      }
-
-      parts.push(
-        'The rewritten chapter should fit seamlessly into the story, stay consistent with tone, continuity and plot progression, and avoid introducing contradictions with the surrounding chapters. Its heading may change slightly.'
+      const body = await ensureChapterLength(
+        current,
+        title,
+        ch,
+        current.chapters || [],
+        chapterSettings
       );
-
-      parts.push(
-        'Return only this chapter as an object with "heading" and "body". Separate paragraphs within the body with two newline characters.'
-      );
-
-      return parts.join(
-        '\n\n'
-      );
-    };
-
-  const saveChapterEdit =
-    async (index, ch) => {
-      const current =
-        bookRef.current;
-
-      if (!current?.id) return;
-
-      const chapters =
-        current.chapters.map(
-          (c, i) =>
-            i === index
-              ? {
-                  ...c,
-                  ...ch,
-                  wordCount:
-                    countWords(
-                      ch.body ??
-                        c.body
-                    )
-                }
-              : c
-        );
-
-      const next = {
-        ...current,
-        chapters
-      };
-
-      setBook(next);
-
-      await updateBook(
-        current.id,
-        {
-          chapters,
-          chapter_count:
-            chapters.length
-        }
-      );
-
-      await updateSummary(
-        `[Chapter ${
-          index + 1
-        } — ${
-          chapters[index]
-            .heading
-        }]\n${
-          chapters[index].body
-        }`
-      );
-
-      await loadBookshelf();
-    };
-
-  const addChapterAfter =
-    async (
-      index,
-      mode = 'ai'
-    ) => {
-      const current =
-        bookRef.current;
-
-      if (!current?.id) return;
-
-      const isManual =
-        mode === 'manual';
-
-      const heading = isManual
-        ? `Chapter ${
-            index + 2
-          }`
-        : '';
-
-      const body = '';
 
       const newCh = {
-        heading,
+        heading: (ch.heading || `Chapter ${chapterNumber}`).trim(),
         body,
-        mode,
-        manual: isManual,
-        genre: 'Auto',
-        lengthMode: 'Short',
-        lengthLabel: ''
+        mode: 'ai',
+        genre: chapterSettings.genre,
+        lengthMode: chapterSettings.lengthMode,
+        wordMin: chapterSettings.wordMin,
+        wordMax: chapterSettings.wordMax,
+        wordCount: countWords(body),
+        chapter_number: chapterNumber,
+        saved: false
       };
 
-      const chapters = [
-        ...current.chapters
-      ];
+      const chapters = [...(current.chapters || []), newCh];
 
-      chapters.splice(
-        index + 1,
-        0,
-        newCh
-      );
-
-      const next = {
-        ...current,
-        chapters
-      };
-
-      setBook(next);
-
-      await updateBook(
-        current.id,
-        {
-          chapters,
-          chapter_count:
-            chapters.length
-        }
-      );
-
-      await loadBookshelf();
-
-      return newCh;
-    };
-
-  const deleteChapter =
-    async (index) => {
-      const current =
-        bookRef.current;
-
-      if (!current?.id) return;
-
-      const chapters =
-        current.chapters.filter(
-          (_, i) =>
-            i !== index
-        );
-
-      const next = {
-        ...current,
-        chapters
-      };
-
-      setBook(next);
-
-      await updateBook(
-        current.id,
-        {
-          chapters,
-          chapter_count:
-            chapters.length
-        }
-      );
-
-      setStatus('summary');
-
-      try {
-        const text =
-          chapters
-            .map(
-              (c, i) =>
-                `[Chapter ${
-                  i + 1
-                } — ${c.heading}]\n${c.body}`
-            )
-            .join('\n\n');
-
-        const res =
-          await callGemini(
-            summaryUpdatePrompt(
+      const directions =
+        direction && direction.trim()
+          ? [
+              ...(current.directions || []),
               {
-                ...next,
-                summary: ''
-              },
-              text
-            ),
-            {
-              type: 'object',
-              properties: {
-                summary: {
-                  type: 'string'
-                }
-              },
-              required: [
-                'summary'
-              ]
-            }
-          );
+                text: direction.trim(),
+                chapter_index: chapters.length - 1,
+                created_at: Date.now()
+              }
+            ]
+          : current.directions || [];
 
-        if (res?.summary) {
-          setBook((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  summary:
-                    res.summary
-                }
-              : prev
-          );
+      const next = { ...current, title, chapters, directions };
+      setBook(next);
 
-          await updateBook(
-            current.id,
-            {
-              summary:
-                res.summary
-            }
-          );
-        }
-      } catch {
-        /* summary best-effort */
-      } finally {
-        setStatus('idle');
-      }
+      // Do not send chapters to the database here.
+      // Only the title and author directions are updated.
+      await updateBook(current.id, { title, directions });
 
-      await loadBookshelf();
-    };
-  const deleteSavedBook = async (id) => {
-  const confirmed = window.confirm(
-    'Delete this story and all its chapters? This cannot be undone.'
-  );
+      await updateSummary(
+        `[Chapter ${chapterNumber} — ${newCh.heading}]\n${newCh.body}`
+      );
 
-  if (!confirmed) return false;
-
-  await deleteBookApi(id);
-
-  setBookshelf((previous) =>
-    previous.filter(
-      (savedBook) => String(savedBook.id) !== String(id)
-    )
-  );
-
-  if (String(bookRef.current?.id) === String(id)) {
-    setBook(null);
-    setStarted(false);
-    setView('stories');
-  }
-
-  return true;
-};
-  const saveStory =
-    async (title) => {
-      const current =
-        bookRef.current;
-
-      if (!current?.id) return;
-
-      setSaving(true);
+      setCoverStatus('painting');
 
       try {
-        const next = {
-          ...current,
-          title
+        const coverBook = {
+          ...bookRef.current,
+          characters: current.characters
         };
 
-        setBook(next);
+        const url = await maybeRefreshCover(coverBook);
 
-        await updateBook(
-          current.id,
-          {
-            title
-          }
-        );
-
-        await loadBookshelf();
+        if (url) {
+          setBook((prev) => (prev ? { ...prev, cover_url: url } : prev));
+        }
+      } catch {
+        /* cover best-effort */
       } finally {
-        setSaving(false);
+        setCoverStatus('idle');
       }
+
+      await illustrateChapterAt(next, chapters.length - 1);
+      await loadSuggestions();
+      await loadBookshelf();
+    } catch (err) {
+      setError(
+        err?.message ||
+          'That chapter could not be generated. Please try again.'
+      );
+    } finally {
+      setStatus('idle');
+      setChapterSettings(DEFAULT_CHAPTER);
+      generatingRef.current = false;
+    }
+  };
+
+  const regenerateChapter = async (index) => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    setStatus(`regen:${index}`);
+    setError('');
+
+    try {
+      const res = await callGemini(regeneratePrompt(current, index), chapterSchema);
+
+      if (!res?.body?.trim()) {
+        throw new Error(
+          'The chapter did not come back in a readable format. Please try again.'
+        );
+      }
+
+      const oldCh = current.chapters[index];
+      const chapterNumber =
+        Number(oldCh.chapter_number) || index + 1;
+
+      const body = await ensureChapterLength(
+        current,
+        current.title,
+        {
+          heading: res.heading || oldCh.heading,
+          body: res.body
+        },
+        current.chapters || [],
+        {
+          lengthMode: oldCh?.lengthMode,
+          wordMin: oldCh?.wordMin,
+          wordMax: oldCh?.wordMax
+        }
+      );
+
+      const newCh = {
+        ...oldCh,
+        heading: (res.heading || oldCh.heading).trim(),
+        body,
+        wordCount: countWords(body),
+        chapter_number: chapterNumber,
+        saved: false,
+        illustrations: {}
+      };
+
+      const chapters = current.chapters.map((c, i) =>
+        i === index ? newCh : c
+      );
+
+      const next = { ...current, chapters };
+      setBook(next);
+
+      // Regeneration is a new unsaved draft, even if the previous version
+      // had been saved. The author must click Save Chapter to persist it.
+      await updateSummary(
+        `[Chapter ${chapterNumber} — ${newCh.heading}]\n${newCh.body}`
+      );
+
+      await illustrateChapterAt(next, index);
+      await loadBookshelf();
+    } catch (err) {
+      setError(
+        err?.message ||
+          'That chapter could not be regenerated. Please try again.'
+      );
+    } finally {
+      setStatus('idle');
+    }
+  };
+
+  const regeneratePrompt = (book, index) => {
+    const parts = [];
+    const chapterNumber =
+      Number(book.chapters[index]?.chapter_number) || index + 1;
+
+    parts.push(
+      `Rewrite ONLY "Chapter ${chapterNumber}" of the story "${book.title}". Keep the rest of the story exactly as it is — do not change events in other chapters.`
+    );
+
+    parts.push(persistentContext(book));
+
+    if (book.summary && book.summary.trim()) {
+      parts.push(
+        `Rolling summary of the story so far (binding continuity):\n${book.summary}`
+      );
+    }
+
+    const others = (book.chapters || [])
+      .map((c, i) =>
+        i === index
+          ? ''
+          : `[Chapter ${Number(c.chapter_number) || i + 1} — ${c.heading}]\n${(
+              c.body || ''
+            ).slice(0, 900)}`
+      )
+      .filter(Boolean)
+      .join('\n\n');
+
+    if (others) {
+      parts.push(`For continuity, here are the other chapters:\n${others}`);
+    }
+
+    const oldCh = book.chapters[index];
+
+    if (
+      oldCh?.genre &&
+      oldCh.genre !== 'Auto' &&
+      oldCh.genre !== 'Custom'
+    ) {
+      parts.push(`Preserve the genre for this chapter: ${oldCh.genre}.`);
+    }
+
+    const [min, max] = resolveRange(
+      oldCh?.lengthMode,
+      oldCh?.wordMin,
+      oldCh?.wordMax
+    );
+
+    if (max) {
+      parts.push(
+        `Aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words for this rewritten chapter.`
+      );
+    } else if (min) {
+      parts.push(
+        `Aim for at least approximately ${min.toLocaleString()} words for this rewritten chapter.`
+      );
+    }
+
+    parts.push(
+      'The rewritten chapter should fit seamlessly into the story, stay consistent with tone, continuity and plot progression, and avoid introducing contradictions with the surrounding chapters. Its heading may change slightly.'
+    );
+
+    parts.push(
+      'Return only this chapter as an object with "heading" and "body". Separate paragraphs within the body with two newline characters.'
+    );
+
+    return parts.join('\n\n');
+  };
+
+  // Explicit Save Chapter action. Only this function marks the edited chapter
+  // as saved and sends the saved chapter collection to MySQL.
+  const saveChapterEdit = async (index, ch) => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    const existingChapter = current.chapters[index];
+    if (!existingChapter) return;
+
+    const chapterNumber =
+      Number(existingChapter.chapter_number) || index + 1;
+
+    const chapters = current.chapters.map((c, i) =>
+      i === index
+        ? {
+            ...c,
+            ...ch,
+            chapter_number: chapterNumber,
+            saved: true,
+            wordCount: countWords(ch.body ?? c.body)
+          }
+        : c
+    );
+
+    const next = { ...current, chapters };
+    setBook(next);
+    setSaving(true);
+    setError('');
+
+    try {
+      await updateBook(current.id, {
+        chapters,
+        chapter_count: savedChaptersOnly(chapters).length
+      });
+
+      // The chapter is explicitly saved, so now update and persist the
+      // rolling summary based on saved chapters.
+      const savedText = savedChaptersOnly(chapters)
+        .map(
+          (chapter) =>
+            `[Chapter ${chapter.chapter_number} — ${chapter.heading}]\n${chapter.body || ''}`
+        )
+        .join('\n\n');
+
+      await updateSummary(savedText, { persist: true });
+      await loadBookshelf();
+    } catch (err) {
+      setError(err?.message || 'The chapter could not be saved.');
+      // Keep the local draft, but revert its saved flag if persistence failed.
+      setBook((previous) => {
+        if (!previous) return previous;
+
+        return {
+          ...previous,
+          chapters: previous.chapters.map((chapter, i) =>
+            i === index
+              ? { ...chapter, saved: false }
+              : chapter
+          )
+        };
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Adding a chapter creates a draft only. It is not stored in MySQL.
+  const addChapterAfter = async (index, mode = 'ai') => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    const isManual = mode === 'manual';
+    const chapterNumber = getNextChapterNumber(current.chapters || []);
+
+    const newCh = {
+      heading: isManual ? `Chapter ${chapterNumber}` : '',
+      body: '',
+      mode,
+      manual: isManual,
+      genre: 'Auto',
+      lengthMode: 'Short',
+      lengthLabel: '',
+      chapter_number: chapterNumber,
+      saved: false
     };
+
+    const chapters = [...current.chapters];
+    chapters.splice(index + 1, 0, newCh);
+
+    setBook({ ...current, chapters });
+    return newCh;
+  };
+
+  // Deleting a chapter explicitly removes it from the working copy. If it
+  // was saved, persist the deletion without persisting any other draft chapters.
+  const deleteChapter = async (index) => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    const removedChapter = current.chapters[index];
+    if (!removedChapter) return;
+
+    const chapters = current.chapters.filter((_, i) => i !== index);
+    const next = { ...current, chapters };
+    setBook(next);
+
+    try {
+      await updateBook(current.id, {
+        chapters,
+        chapter_count: savedChaptersOnly(chapters).length
+      });
+    } catch (err) {
+      setError(err?.message || 'The chapter could not be deleted.');
+      return;
+    }
+
+    // Refresh the summary from the remaining saved chapters, without
+    // including unsaved drafts in the stored summary.
+    const savedText = savedChaptersOnly(chapters)
+      .map(
+        (chapter) =>
+          `[Chapter ${chapter.chapter_number} — ${chapter.heading}]\n${chapter.body || ''}`
+      )
+      .join('\n\n');
+
+    if (savedText.trim()) {
+      await updateSummary(savedText, { persist: true });
+    } else {
+      setBook((previous) =>
+        previous ? { ...previous, summary: '' } : previous
+      );
+
+      try {
+        await updateBook(current.id, { summary: '' });
+      } catch {
+        /* summary persistence best-effort */
+      }
+    }
+
+    await loadBookshelf();
+  };
+
+  const deleteSavedBook = async (id) => {
+    const confirmed = window.confirm(
+      'Delete this story and all its chapters? This cannot be undone.'
+    );
+
+    if (!confirmed) return false;
+
+    await deleteBookApi(id);
+
+    setBookshelf((previous) =>
+      previous.filter(
+        (savedBook) => String(savedBook.id) !== String(id)
+      )
+    );
+
+    if (String(bookRef.current?.id) === String(id)) {
+      setBook(null);
+      setStarted(false);
+      setView('stories');
+    }
+
+    return true;
+  };
+
+  // Save Story saves metadata such as the title, not unsaved chapter drafts.
+  const saveStory = async (title) => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    setSaving(true);
+
+    try {
+      const next = { ...current, title };
+      setBook(next);
+
+      await updateBook(current.id, { title });
+      await loadBookshelf();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openBook = async (id) => {
     setError('');
@@ -1913,56 +1525,35 @@ export default function useStorybook() {
     let saved;
 
     try {
-      saved =
-        await getBookApi(id);
+      saved = await getBookApi(id);
     } catch {
       saved = null;
     }
 
     if (!saved) {
-      setError(
-        'That story could not be opened.'
-      );
+      setError('That story could not be opened.');
       return;
     }
 
-    const chapters =
-      saved.chapters || [];
+    const chapters = normalizeLoadedChapters(saved.chapters || []);
 
     setBook({
       id: saved.id,
       title: saved.title,
       idea: saved.idea || '',
-      perspective:
-        saved.perspective ||
-        'Auto',
-      audience:
-        saved.audience ||
-        'Auto',
-      format:
-        saved.format ||
-        'Auto',
-      language:
-        saved.language ||
-        'Auto',
-      genre:
-        saved.genre || 'Auto',
-      characters:
-        saved.characters || [],
-      setting:
-        saved.setting || 'Auto',
+      perspective: saved.perspective || 'Auto',
+      audience: saved.audience || 'Auto',
+      format: saved.format || 'Auto',
+      language: saved.language || 'Auto',
+      genre: saved.genre || 'Auto',
+      characters: saved.characters || [],
+      setting: saved.setting || 'Auto',
       chapters,
-      directions:
-        saved.directions || [],
-      summary:
-        saved.summary || '',
+      directions: saved.directions || [],
+      summary: saved.summary || '',
       story_length:
-        saved.story_length ||
-        mapLegacyLength(
-          saved.story_length
-        ),
-      cover_url:
-        saved.cover_url || null
+        saved.story_length || mapLegacyLength(saved.story_length),
+      cover_url: saved.cover_url || null
     });
 
     setIdea('');
@@ -1970,28 +1561,17 @@ export default function useStorybook() {
     setSetting('');
 
     setConfig({
-      perspective:
-        saved.perspective ||
-        'Auto',
-      audience:
-        saved.audience ||
-        'Auto',
-      format:
-        saved.format ||
-        'Auto',
-      language:
-        saved.language ||
-        'Auto'
+      perspective: saved.perspective || 'Auto',
+      audience: saved.audience || 'Auto',
+      format: saved.format || 'Auto',
+      language: saved.language || 'Auto'
     });
 
-    setChapterSettings(
-      DEFAULT_CHAPTER
-    );
+    setChapterSettings(DEFAULT_CHAPTER);
     setSuggestions([]);
   };
 
-  const continueAutomatically =
-    () => generateNextChapter('');
+  const continueAutomatically = () => generateNextChapter('');
 
   return {
     book,
