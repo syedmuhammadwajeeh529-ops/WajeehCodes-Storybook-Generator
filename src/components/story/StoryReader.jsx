@@ -19,7 +19,7 @@ function ChapterEditor({ chapter, onSave, onCancel }) {
   </div>;
 }
 
-function ChapterBlock({ chapter, index, status, onEdit, onRegen, onDelete, onAddAfter, defaultEditing, illustrating }) {
+function ChapterBlock({ chapter, index, status, onEdit, onRegen, onDelete, onAddAfter, defaultEditing, illustrating, saving }) {
   const [editing, setEditing] = useState(!!defaultEditing);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const regenBusy = status === `regen:${index}`;
@@ -38,13 +38,13 @@ function ChapterBlock({ chapter, index, status, onEdit, onRegen, onDelete, onAdd
         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-[#8b887c]">
           {chapter.genre && chapter.genre !== 'Auto' && <span>Genre: <span className="text-[#57654b] font-semibold">{chapter.genre}</span></span>}
           {chapter.lengthMode && <span>Length: <span className="text-[#57654b] font-semibold">{lengthLabel(chapter.lengthMode, chapter.wordMin, chapter.wordMax)}</span></span>}
-          {chapter.wordCount ? <span><span className="text-[#57654b] font-semibold">{chapter.wordCount.toLocaleString()}</span> words</span> : null}
         </div>
       </div>
     </div>
     <ParagraphIllustration paragraphs={(chapter.body || '').split(/\n\s*\n/).filter(Boolean)} illustrations={chapter.illustrations} illustrating={illustrating} />
     <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-[#e1ded3]">
-      <button type="button" onClick={() => setEditing(true)} disabled={regenBusy} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c5c0b2] bg-white text-[#3c4436] px-3 py-2 text-xs font-semibold hover:bg-[#f4f1e9] disabled:opacity-60"><PenLine size={14}/> Edit</button>
+      <button type="button" onClick={() => setEditing(true)} disabled={regenBusy || saving} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c5c0b2] bg-white text-[#3c4436] px-3 py-2 text-xs font-semibold hover:bg-[#f4f1e9] disabled:opacity-60"><PenLine size={14}/> Edit</button>
+<button type="button" onClick={() => onEdit(index, chapter)} disabled={regenBusy || saving} className="inline-flex items-center gap-1.5 rounded-lg bg-[#354834] text-white px-3 py-2 text-xs font-semibold hover:bg-[#253626] disabled:opacity-60"><Save size={14}/> {saving ? 'Saving…' : 'Save Chapter'}</button>
       <button type="button" onClick={() => onRegen(index)} disabled={regenBusy} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c5c0b2] bg-white text-[#3c4436] px-3 py-2 text-xs font-semibold hover:bg-[#f4f1e9] disabled:opacity-60">{regenBusy ? <Loader2 size={14} className="animate-spin"/> : <RefreshCw size={14}/>} {regenBusy ? 'Rewriting…' : 'Regenerate'}</button>
       <button type="button" onClick={() => onAddAfter(index)} disabled={regenBusy} className="inline-flex items-center gap-1.5 rounded-lg border border-[#c5c0b2] bg-white text-[#3c4436] px-3 py-2 text-xs font-semibold hover:bg-[#f4f1e9] disabled:opacity-60"><Plus size={14}/> Add chapter after</button>
       {confirmingDelete
@@ -156,7 +156,7 @@ export default function StoryReader({ book, status, error, suggestions, saving, 
     </div>
 
     <div className="space-y-6">
-      {chapters.map((chapter, i) => <ChapterBlock key={`${i}-${autoEdit.index === i ? autoEdit.nonce : 0}`} chapter={chapter} index={i} status={status} defaultEditing={autoEdit.index === i} onEdit={onEdit} onRegen={onRegen} onDelete={onDelete} onAddAfter={onAddAfter} illustrating={!!illustratingChapters?.[i]} />)}
+      {chapters.map((chapter, i) => <ChapterBlock key={`${i}-${autoEdit.index === i ? autoEdit.nonce : 0}`} chapter={chapter} index={i} status={status} defaultEditing={autoEdit.index === i} onEdit={onEdit} onRegen={onRegen} onDelete={onDelete} onAddAfter={onAddAfter} illustrating={!!illustratingChapters?.[i]} saving={saving} />)}
     </div>
 
     {error && <p role="alert" className="text-sm text-[#a34235] bg-[#f9eee9] rounded-xl p-3">{error}</p>}
