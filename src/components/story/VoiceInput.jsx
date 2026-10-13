@@ -5,7 +5,8 @@ export default function VoiceInput({
   onChange,
   placeholder,
   id,
-  className = ""
+  className = "",
+  buttonClassName = ""
 }) {
   const [listening, setListening] = useState(false);
 
@@ -30,7 +31,6 @@ export default function VoiceInput({
 
     recognition.onresult = (event) => {
       const spokenText = event.results[0][0].transcript;
-
       onChange(value ? `${value} ${spokenText}` : spokenText);
     };
 
@@ -47,20 +47,21 @@ export default function VoiceInput({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <textarea
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`${className} pr-14`}
+        className={`block w-full ${className} pr-14`}
       />
 
       <button
         type="button"
         onClick={startListening}
         aria-label={listening ? "Listening" : "Speak"}
-        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#e5eadf] text-lg transition-colors hover:bg-[#d5ddcc]"
+        title={listening ? "Listening..." : "Speak your story idea"}
+        className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#c8d2bf] bg-[#e5eadf] text-lg shadow-sm transition-colors hover:bg-[#d5ddcc] focus:outline-none focus:ring-2 focus:ring-[#57654b]/50 ${buttonClassName}`}
       >
         {listening ? "🔴" : "🎙️"}
       </button>
