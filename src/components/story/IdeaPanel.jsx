@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, BookOpenText } from 'lucide-react';
+import VoiceInput from './VoiceInput';
 import { GenrePicker, ChapterLengthPicker, SettingInput, CharacterSection, PerspectivePicker, AudiencePicker, FormatPicker, LanguagePicker } from './StoryConfig';
 
 export default function IdeaPanel({ idea, onIdeaChange, config, setConfig, characters, setCharacters, setting, setSetting, chapterSettings, setChapterSettings, status, error, onGenerate }) {
@@ -12,7 +13,13 @@ export default function IdeaPanel({ idea, onIdeaChange, config, setConfig, chara
 
     <div>
       <label htmlFor="story-idea" className="block text-xs font-bold tracking-[0.18em] uppercase text-[#746e62] mb-1.5">Your story idea</label>
-      <textarea id="story-idea" value={idea} onChange={e => onIdeaChange(e.target.value)} placeholder="A lighthouse keeper finds a letter addressed to someone who hasn't been born yet…" className="w-full min-h-[130px] resize-y rounded-2xl border border-[#d7d0c3] bg-[#fffdf8] px-5 py-4 text-[16px] leading-relaxed text-[#22251f] placeholder:text-[#a7a094] focus:outline-none focus:ring-2 focus:ring-[#57654b]/40 focus:border-[#57654b] transition-shadow" />
+      <VoiceInput
+        id="story-idea"
+        value={idea}
+        onChange={onIdeaChange}
+        placeholder="A lighthouse keeper finds a letter addressed to someone who hasn't been born yet…"
+        className="w-full min-h-[130px] resize-y rounded-2xl border border-[#d7d0c3] bg-[#fffdf8] px-5 py-4 text-[16px] leading-relaxed text-[#22251f] placeholder:text-[#a7a094] focus:outline-none focus:ring-2 focus:ring-[#57654b]/40 focus:border-[#57654b] transition-shadow"
+      />
       <p className="mt-1.5 text-sm text-[#847e70]">Type your idea and fine-tune the words before continuing.</p>
     </div>
 
