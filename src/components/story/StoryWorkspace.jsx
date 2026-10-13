@@ -6,7 +6,7 @@ import StoryReader from './StoryReader';
 export default function StoryWorkspace(s) {
   // Story-level idea panel is shown when starting a NEW story (no book yet).
   // Once a book exists, the reader takes over and handles ongoing generation.
-  return <section aria-label="Story workspace" className="grid lg:grid-cols-[minmax(320px,540px)_minmax(0,1fr)] gap-10 lg:gap-12 items-start">
+  return <section aria-label="Story workspace" className={s.book ? "grid lg:grid-cols-[minmax(320px,540px)_minmax(0,1fr)] gap-10 lg:gap-12 items-start" : "grid grid-cols-1 gap-8 items-start"}>
     <div className="space-y-6">
       {!s.book && <>
         <div><span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.2em] uppercase text-[#718062]"><SparklesIcon size={14}/> The story starts here</span><h1 className="font-serif text-4xl sm:text-5xl leading-[1.08] tracking-tight mt-4 text-[#283527]">Every idea<br/><em className="font-normal text-[#718062]">has a story.</em></h1><p className="text-[#6f7267] leading-relaxed mt-4 max-w-sm">Configure your characters, world and settings, then write your opening chapter.</p></div>
