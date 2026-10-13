@@ -18,8 +18,8 @@ export default function IdeaPanel({ idea, onIdeaChange, config, setConfig, chara
         value={idea}
         onChange={onIdeaChange}
         placeholder="A lighthouse keeper finds a letter addressed to someone who hasn't been born yet…"
-        className="min-h-[130px] resize-y rounded-2xl border border-[#d7d0c3] bg-[#fffdf8] px-5 py-4 text-[16px] leading-relaxed text-[#22251f] placeholder:text-[#a7a094] focus:outline-none focus:ring-2 focus:ring-[#57654b]/40 focus:border-[#57654b] transition-shadow"
-        buttonClassName="!right-4 !top-4 !z-30 !h-10 !w-10 !border-[#354834] !bg-[#354834] !text-white !shadow-lg ring-2 ring-[#fffdf8] hover:!bg-[#253626]"
+        className="min-h-[190px] h-[190px] resize-y rounded-2xl border border-[#d7d0c3] bg-[#fffdf8] px-5 py-4 text-[16px] leading-relaxed text-[#22251f] placeholder:text-[#a7a094] focus:outline-none focus:ring-2 focus:ring-[#57654b]/40 focus:border-[#57654b] transition-shadow"
+        buttonClassName="!right-4 !top-auto !bottom-4 !z-30 !h-10 !w-10 !border-[#354834] !bg-[#354834] !text-white !shadow-lg ring-2 ring-[#fffdf8] hover:!bg-[#253626]"
       />
       <p className="mt-1.5 text-sm text-[#847e70]">Type your idea and fine-tune the words before continuing.</p>
     </div>
