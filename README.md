@@ -60,3 +60,14 @@ GitHub integration: [https://docs.base44.com/developers/app-code/local-developme
 Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
 
 Support: [https://app.base44.com/support](https://app.base44.com/support)
+
+
+## API configuration
+
+The frontend uses `VITE_API_BASE_URL` for requests to the Node API.
+
+- Local development: leave it unset; the app automatically uses `http://localhost:3001` when opened on localhost.
+- Production with a same-origin reverse proxy: leave it unset; requests use the deployed site's `/api` routes.
+- Production with a separately hosted API: set `VITE_API_BASE_URL` to the public backend origin (for example, `https://api.example.com`) in the frontend hosting provider, then rebuild/redeploy the frontend.
+
+For a separately hosted frontend and backend, configure the backend's `CORS_ORIGINS` environment variable with the exact frontend origin (for example, `https://storybook.example.com`). Multiple origins can be comma-separated. Keep API keys and database credentials on the backend only.
