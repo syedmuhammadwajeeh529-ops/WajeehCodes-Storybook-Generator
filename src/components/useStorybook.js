@@ -279,6 +279,14 @@ const questionsSchema = {
   required: ['questions']
 };
 
+const suggestionChoiceSchema = {
+  type: 'object',
+  properties: {
+    suggestion: { type: 'string' }
+  },
+  required: ['suggestion']
+};
+
 // Prompt builders -------------------------------------------------------------
 
 function buildCharacterText(characters = []) {
@@ -771,6 +779,27 @@ function questionsPrompt(book) {
   parts.push(
     'Propose 2-3 short, relevant, contextual questions or prompts the author might answer to guide the NEXT chapter. They must grow from the actual story, its characters, setting and unresolved threads — not generic or random. Phrase them as suggestions in the author\'s voice, e.g. "Have them discover what\'s inside the vault", "Introduce a rival who knows about the hidden city", "Jump forward a season and show the consequences". Each should be concise.'
   );
+
+  return parts.join('\n\n');
+}
+
+function chooseSuggestionPrompt(book, options) {
+  const parts = [
+    `Choose the strongest next-chapter direction for the story "${book.title}".`,
+    persistentContextStyleFree(book)
+  ];
+
+  if (book.summary && book.summary.trim()) {
+    parts.push(`Rolling story summary:\n${book.summary}`);
+  }
+
+  const recent = recentChaptersBlock(book, 1800);
+  if (recent) parts.push(`Recent story events:\n${recent}`);
+
+  parts.push(
+    'Select exactly one supplied suggestion. Choose the option that best develops the story while respecting its established characters, world, continuity, and unresolved threads. Do not invent a new option. Return the exact text of the selected suggestion.'
+  );
+  parts.push(`Available suggestions:\n${options.map((option, index) => `${index + 1}. ${option}`).join('\n')}`);
 
   return parts.join('\n\n');
 }
@@ -1726,7 +1755,44 @@ export default function useStorybook() {
     setSuggestions([]);
   };
 
-  const continueAutomatically = () => generateNextChapter('');
+  const continueAutomatically = async () => {
+    const current = bookRef.current;
+    if (!current?.id) return;
+
+    const options = suggestions
+      .filter((suggestion) => typeof suggestion === 'string' && suggestion.trim())
+      .slice(0, 3);
+
+    if (!options.length) {
+      return generateNextChapter('');
+    }
+
+    if (generatingRef.current) return;
+
+    generatingRef.current = true;
+    setStatus('choosing');
+    setError('');
+
+    try {
+      const result = await callGemini(
+        chooseSuggestionPrompt(current, options),
+        suggestionChoiceSchema
+      );
+
+      const selected = options.find(
+        (option) => option === result?.suggestion?.trim()
+      ) || options[0];
+
+      generatingRef.current = false;
+      await generateNextChapter(selected);
+    } catch (err) {
+      generatingRef.current = false;
+      setStatus('idle');
+      setError(
+        err?.message || 'The next chapter direction could not be selected. Please try again.'
+      );
+    }
+  };
 
   return {
     book,
