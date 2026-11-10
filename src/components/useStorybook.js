@@ -1078,8 +1078,8 @@ export default function useStorybook() {
         if (url) {
           setBook((prev) => (prev ? { ...prev, cover_url: url } : prev));
         }
-      } catch {
-        /* cover best-effort */
+      } catch (err) {
+        setError(err?.message || 'The book cover could not be generated.');
       } finally {
         setCoverStatus('idle');
       }
@@ -1227,8 +1227,8 @@ export default function useStorybook() {
         if (url) {
           setBook((prev) => (prev ? { ...prev, cover_url: url } : prev));
         }
-      } catch {
-        /* cover best-effort */
+      } catch (err) {
+        setError(err?.message || 'The book cover could not be refreshed.');
       } finally {
         setCoverStatus('idle');
       }
