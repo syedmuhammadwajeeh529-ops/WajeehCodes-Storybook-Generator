@@ -1,3 +1,5 @@
+import { apiUrl } from '../../lib/api';
+
 const coverDecisionSchema = {
   type: 'object',
   properties: {
@@ -8,7 +10,6 @@ const coverDecisionSchema = {
   required: ['regenerate']
 };
 
-import { apiUrl } from '../../lib/api';
 
 async function callGemini(prompt, schema) {
   const response = await fetch(
