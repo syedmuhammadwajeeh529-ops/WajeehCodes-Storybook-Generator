@@ -29,6 +29,15 @@ async function ensureBookSchema() {
       const [rows] = await db.query("SHOW COLUMNS FROM books");
       const existing = new Set(rows.map((row) => row.Field));
 
+      // Generated cover images are stored as Base64 data URLs, which can
+      // exceed MySQL TEXT's 65 KB limit. Upgrade existing databases too.
+      const coverColumn = rows.find((row) => row.Field === "cover_url");
+      if (coverColumn && String(coverColumn.Type).toLowerCase() !== "longtext") {
+        await db.query(
+          "ALTER TABLE books MODIFY COLUMN cover_url LONGTEXT"
+        );
+      }
+
       const missingColumns = {
         characters: "LONGTEXT",
         setting: "TEXT",
