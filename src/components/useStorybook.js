@@ -1543,7 +1543,7 @@ export default function useStorybook() {
     if (!current?.id) return;
 
     const isManual = mode === 'manual';
-    const chapterNumber = getNextChapterNumber(current.chapters || []);
+    const chapterNumber = index + 2;
 
     const newCh = {
       heading: isManual ? `Chapter ${chapterNumber}` : '',
@@ -1560,7 +1560,13 @@ export default function useStorybook() {
     const chapters = [...current.chapters];
     chapters.splice(index + 1, 0, newCh);
 
-    setBook({ ...current, chapters });
+    // Keep stored chapter numbers aligned with the order shown in the reader.
+    const orderedChapters = chapters.map((chapter, chapterIndex) => ({
+      ...chapter,
+      chapter_number: chapterIndex + 1
+    }));
+
+    setBook({ ...current, chapters: orderedChapters });
     return newCh;
   };
 
@@ -1603,7 +1609,12 @@ export default function useStorybook() {
       if (!stageFour) return;
     }
 
-    const chapters = current.chapters.filter((_, i) => i !== index);
+    const chapters = current.chapters
+      .filter((_, i) => i !== index)
+      .map((chapter, chapterIndex) => ({
+        ...chapter,
+        chapter_number: chapterIndex + 1
+      }));
     const next = { ...current, chapters };
 
     setBook(next);
