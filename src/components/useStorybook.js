@@ -1563,6 +1563,10 @@ export default function useStorybook() {
     // Keep stored chapter numbers aligned with the order shown in the reader.
     const orderedChapters = chapters.map((chapter, chapterIndex) => ({
       ...chapter,
+      heading:
+        chapter.manual && /^Chapter \\d+$/i.test(chapter.heading || '')
+          ? `Chapter ${chapterIndex + 1}`
+          : chapter.heading,
       chapter_number: chapterIndex + 1
     }));
 
@@ -1613,6 +1617,10 @@ export default function useStorybook() {
       .filter((_, i) => i !== index)
       .map((chapter, chapterIndex) => ({
         ...chapter,
+        heading:
+          chapter.manual && /^Chapter \\d+$/i.test(chapter.heading || '')
+            ? `Chapter ${chapterIndex + 1}`
+            : chapter.heading,
         chapter_number: chapterIndex + 1
       }));
     const next = { ...current, chapters };
