@@ -434,7 +434,7 @@ function ChapterComposer({
         </p>
       )}
 
-      {busy && (
+      {busy && status !== 'choosing' && (
         <p className="mt-4 inline-flex items-center gap-2 text-sm text-[#57654b]">
           <Loader2 size={15} className="animate-spin" />
           Writing Chapter {nextNumber}…
