@@ -234,29 +234,23 @@ export async function generateInitialCover(book) {
 }
 
 export async function maybeRefreshCover(book) {
-  try {
-    const decision =
-      await shouldRegenerateCover(book);
+  const decision = await shouldRegenerateCover(book);
 
-    if (!decision.regenerate) {
-      return null;
-    }
-
-    const theme =
-      decision.theme &&
-      decision.theme.trim()
-        ? decision.theme.trim()
-        : await resolveCoverDirective(book);
-
-    const url =
-      await generateCoverImage(book, theme);
-
-    await updateBook(book.id, {
-      cover_url: url
-    });
-
-    return url;
-  } catch {
+  if (!decision.regenerate) {
     return null;
   }
+
+  const theme =
+    decision.theme &&
+    decision.theme.trim()
+      ? decision.theme.trim()
+      : await resolveCoverDirective(book);
+
+  const url = await generateCoverImage(book, theme);
+
+  await updateBook(book.id, {
+    cover_url: url
+  });
+
+  return url;
 }
