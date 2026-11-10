@@ -1564,7 +1564,7 @@ export default function useStorybook() {
     const orderedChapters = chapters.map((chapter, chapterIndex) => ({
       ...chapter,
       heading:
-        chapter.manual && /^Chapter \\d+$/i.test(chapter.heading || '')
+        chapter.manual && /^Chapter \d+$/i.test(chapter.heading || '')
           ? `Chapter ${chapterIndex + 1}`
           : chapter.heading,
       chapter_number: chapterIndex + 1
@@ -1618,7 +1618,7 @@ export default function useStorybook() {
       .map((chapter, chapterIndex) => ({
         ...chapter,
         heading:
-          chapter.manual && /^Chapter \\d+$/i.test(chapter.heading || '')
+          chapter.manual && /^Chapter \d+$/i.test(chapter.heading || '')
             ? `Chapter ${chapterIndex + 1}`
             : chapter.heading,
         chapter_number: chapterIndex + 1
