@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { CHAPTER_RANGES } from './story/storyOptions';
 import { generateInitialCover, maybeRefreshCover } from './story/coverGenerator';
+import { apiUrl } from '../lib/api';
 
 // Word-count helpers -----------------------------------------------------------
 
@@ -23,7 +24,7 @@ function resolveRange(mode, wordMin, wordMax) {
 // API helpers -----------------------------------------------------------------
 
 async function callGemini(prompt, schema) {
-  const response = await fetch('http://localhost:3001/api/gemini', {
+  const response = await fetch(apiUrl('/api/gemini'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, schema })
@@ -44,7 +45,7 @@ async function callGemini(prompt, schema) {
 }
 
 async function createBookApi(book) {
-  const response = await fetch('http://localhost:3001/api/books', {
+  const response = await fetch(apiUrl('/api/books'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(book)
@@ -66,7 +67,7 @@ async function createBookApi(book) {
 
 async function listBooksApi(limit = 50) {
   const response = await fetch(
-    `http://localhost:3001/api/books/query?limit=${encodeURIComponent(limit)}`,
+    apiUrl(`/api/books/query?limit=${encodeURIComponent(limit)}`),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,7 +91,7 @@ async function listBooksApi(limit = 50) {
 
 async function getBookApi(id) {
   const response = await fetch(
-    `http://localhost:3001/api/books/${encodeURIComponent(id)}/get`,
+    apiUrl(`/api/books/${encodeURIComponent(id)}/get`),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -114,7 +115,7 @@ async function getBookApi(id) {
 
 async function updateBookApi(id, updates) {
   const response = await fetch(
-    `http://localhost:3001/api/books/${encodeURIComponent(id)}`,
+    apiUrl(`/api/books/${encodeURIComponent(id)}`),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -138,7 +139,7 @@ async function updateBookApi(id, updates) {
 
 async function deleteBookApi(id) {
   const response = await fetch(
-    `http://localhost:3001/api/books/${encodeURIComponent(id)}/delete`,
+    apiUrl(`/api/books/${encodeURIComponent(id)}/delete`),
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
