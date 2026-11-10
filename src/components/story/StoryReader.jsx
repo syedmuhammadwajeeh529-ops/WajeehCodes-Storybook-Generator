@@ -156,6 +156,14 @@ function ChapterBlock({
         </div>
       </div>
 
+      {chapter.body && (
+        <div className="mt-5 border-t border-[#eee9df] pt-5">
+          <div className="whitespace-pre-wrap break-words font-serif text-[16px] sm:text-[17px] leading-[1.9] text-[#3b4037]">
+            {chapter.body}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-[#e1ded3]">
         <button
           type="button"
