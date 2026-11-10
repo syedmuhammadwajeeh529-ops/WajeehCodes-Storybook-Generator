@@ -6,11 +6,14 @@ export default function VoiceInput({
   placeholder,
   id,
   className = "",
-  buttonClassName = ""
+  buttonClassName = "",
+  disabled = false
 }) {
   const [listening, setListening] = useState(false);
 
   const startListening = () => {
+    if (disabled || listening) return;
+
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -31,6 +34,7 @@ export default function VoiceInput({
 
     recognition.onresult = (event) => {
       const spokenText = event.results[0][0].transcript;
+
       onChange(value ? `${value} ${spokenText}` : spokenText);
     };
 
@@ -47,21 +51,23 @@ export default function VoiceInput({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full min-w-0">
       <textarea
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`block w-full ${className} pr-14`}
+        disabled={disabled}
+        className={`block w-full box-border ${className} pr-16`}
       />
 
       <button
         type="button"
         onClick={startListening}
+        disabled={disabled || listening}
         aria-label={listening ? "Listening" : "Speak"}
-        title={listening ? "Listening..." : "Speak your story idea"}
-        className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-[#c8d2bf] bg-[#e5eadf] text-lg shadow-sm transition-colors hover:bg-[#d5ddcc] focus:outline-none focus:ring-2 focus:ring-[#57654b]/50 ${buttonClassName}`}
+        title={listening ? "Listening..." : "Speak your idea"}
+        className={`absolute right-4 bottom-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#354834] text-white text-lg shadow-lg transition-colors hover:bg-[#253626] disabled:cursor-not-allowed disabled:opacity-50 ${buttonClassName}`}
       >
         {listening ? "🔴" : "🎙️"}
       </button>

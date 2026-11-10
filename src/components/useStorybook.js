@@ -353,17 +353,20 @@ function audienceDirective(option) {
 
 function formatDirective(option) {
   switch (option) {
+    case 'Auto':
+      return 'Story format: Auto — choose the most suitable narrative structure for the story idea. Decide whether it works best as a continuous novel, connected serialized installments, a collection of complete short stories, or self-contained episodes. Follow the chosen structure consistently throughout the book.';
+
     case 'Novel':
-      return 'Story format: Novel — write a connected chapter that advances the larger plot, developing scenes fully with patient pacing, rising tension and interwoven threads that pay off across the whole book.';
+      return 'Story format: Novel — write one continuous, connected narrative across chapters. Develop the main plot, characters, relationships, and conflicts over time. Chapters should advance the larger story, and major story arcs should be resolved at appropriate points rather than prematurely.';
 
     case 'Serialized chapters':
-      return 'Story format: Serialized chapters — write an installment that is satisfying on its own yet ends with a hook that pulls toward the next chapter, with forward momentum and episodic rhythm.';
+      return 'Story format: Serialized chapters — write connected installments in an ongoing narrative. Each installment should deliver meaningful progress and a satisfying development, while leaving an appropriate unresolved question, discovery, or hook to encourage the next installment. Maintain continuity across installments.';
 
     case 'Short story collection':
-      return 'Story format: Short story collection — give this chapter a self-contained arc with a clear shape, tighter focus and a sense of conclusion, even while it stays connected to the wider characters and world.';
+      return 'Story format: Short story collection — each new entry must be a distinct, complete short story with its own central situation, development, and satisfying resolution. Stories may share a setting, themes, or characters, but each must have its own plot and ending. Do not merely continue the previous entry as another chapter of the same plot.';
 
     case 'Episodic':
-      return 'Story format: Episodic — write a lively, self-contained episode with a clear beginning, middle and end, focused on one encounter or event while keeping continuity with the ongoing cast.';
+      return 'Story format: Episodic — write self-contained episodes featuring a recurring cast, setting, or premise. Each episode should have its own central event, beginning, development, and resolution. Ongoing character development and longer storylines may continue between episodes, but the main event of each episode should reach a satisfying conclusion.';
 
     default:
       return '';
@@ -387,7 +390,7 @@ function storyLevelText(book) {
     if (d) parts.push(d);
   }
 
-  if (book.format && book.format !== 'Auto') {
+  if (book.format) {
     const d = formatDirective(book.format);
     if (d) parts.push(d);
   }
@@ -542,18 +545,57 @@ function sharedContext(book) {
 function genPrompt(book, currentInstruction, chapterSettings) {
   const parts = [];
   const nextNumber = getNextChapterNumber(book.chapters || []);
+  const format = book.format || 'Auto';
 
-  parts.push(`Write Chapter ${nextNumber} of the story "${book.title}".`);
+  const continuationInstruction =
+    format === 'Short story collection'
+      ? 'Write a new, distinct short story for this entry. Give it its own beginning, development, and satisfying ending. It may reuse the established world or characters, but do not simply continue the previous story’s central plot.'
+      : format === 'Episodic'
+        ? 'Write a self-contained episode with its own central event and satisfying resolution. Maintain continuity with established characters and longer storylines where appropriate, but resolve the main event of this episode.'
+        : format === 'Novel'
+          ? 'Continue the same connected narrative, advancing the larger plot and developing characters and conflicts naturally across chapters.'
+          : format === 'Serialized chapters'
+            ? 'Continue the ongoing serialized narrative. Make meaningful progress in this installment and end with an appropriate hook or unresolved question that encourages the next installment.'
+            : 'Choose the narrative structure best suited to the story idea and keep it consistent. Maintain continuity where appropriate and give each entry an ending that suits the chosen structure.';
+
+  const entryLabel =
+    format === 'Short story collection'
+      ? 'short story'
+      : format === 'Episodic'
+        ? 'episode'
+        : 'chapter';
+
+  const lengthLabel =
+    format === 'Short story collection'
+      ? 'this short story ONLY'
+      : format === 'Episodic'
+        ? 'this episode ONLY'
+        : 'this chapter ONLY';
+
+  parts.push(
+    format === 'Short story collection'
+      ? `Write Short Story ${nextNumber} in the collection "${book.title}".`
+      : format === 'Episodic'
+        ? `Write Episode ${nextNumber} of "${book.title}".`
+        : `Write Chapter ${nextNumber} of the story "${book.title}".`
+  );
+
   parts.push(persistentContext(book));
 
   if (book.summary && book.summary.trim()) {
     parts.push(
-      `Rolling summary of the story so far (this is binding continuity — do not contradict it):\n${book.summary}`
+      `Rolling summary of the story so far (use it to preserve relevant continuity, but allow a new short story to have its own plot):\n${book.summary}`
     );
   }
 
   const recent = recentChaptersBlock(book, 3500);
-  if (recent) parts.push(recent);
+  if (recent) {
+    parts.push(
+      format === 'Short story collection'
+        ? `Recent entries for reference. Preserve shared-world details when useful, but create a distinct plot for the new story:\n${recent}`
+        : `Recent entries for continuity:\n${recent}`
+    );
+  }
 
   const langNote = languageOverrideNote(book);
   if (langNote) parts.push(langNote);
@@ -570,8 +612,8 @@ function genPrompt(book, currentInstruction, chapterSettings) {
     chapterSettings?.genre &&
     chapterSettings.genre !== 'Auto' &&
     chapterSettings.genre !== 'Custom'
-      ? `Genre for this chapter: ${chapterSettings.genre}.`
-      : 'Genre for this chapter: choose one that fits the story and the direction of the narrative.';
+      ? `Genre for this ${entryLabel}: ${chapterSettings.genre}.`
+      : `Genre for this ${entryLabel}: choose one that fits the story idea and the direction of the narrative.`;
 
   parts.push(genre);
 
@@ -583,54 +625,75 @@ function genPrompt(book, currentInstruction, chapterSettings) {
 
   if (max) {
     parts.push(
-      `Length for this chapter ONLY: aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words in a single continuous chapter. Do not wrap it up early; develop the scene fully to reach the target length.`
+      `Length for ${lengthLabel}: aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words. Develop the narrative fully to reach the target length without unnecessary padding.`
     );
   } else if (min) {
     parts.push(
-      `Length for this chapter ONLY: aim for at least approximately ${min.toLocaleString()} words in a single continuous chapter.`
+      `Length for ${lengthLabel}: aim for at least approximately ${min.toLocaleString()} words.`
     );
   } else {
-    parts.push('Length for this chapter ONLY: a reasonably full chapter (a few hundred words).');
+    parts.push(
+      `Length for ${lengthLabel}: write a reasonably full, developed narrative.`
+    );
   }
 
   if (currentInstruction && currentInstruction.trim()) {
     parts.push(
-      `The author's own direction for THIS chapter (combine it with the original settings above, do not discard them):\n${currentInstruction.trim()}`
+      `The author's own direction for this ${entryLabel} (combine it with the original settings above; do not discard them):\n${currentInstruction.trim()}`
     );
   }
 
-  parts.push(
-    'Continue the story naturally from where it ended. If the story feels like it has reached a natural stopping point, resolve arcs satisfyingly while leaving room for the story to continue — never end by saying "the end" unless the author has requested a conclusion, and always allow the narrative to keep going.'
-  );
+  parts.push(continuationInstruction);
 
-  parts.push(
+  const outputInstruction =
     book.chapters?.length
-      ? 'Write ONE chapter only. Return an object with a "chapter" that has a short evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters. Also return the story\'s overall "title" unchanged unless it genuinely no longer fits.'
-      : 'Create a concise, memorable overall book title inspired by the story idea. Do not copy or simply rephrase the story idea as the title. The book title must be distinct from the chapter heading. Write ONE chapter only. Return an object with a "title" and a "chapter" that has a short evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters.'
-  );
+      ? `Write ONE ${entryLabel} only. Return an object with a "chapter" that has a short, evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters. Also return the story's overall "title" unchanged unless it genuinely no longer fits.`
+      : `Create a concise, memorable overall title inspired by the story idea. Do not simply copy or rephrase the story idea. The overall title must be distinct from the entry heading. Write ONE ${entryLabel} only. Return an object with a "title" and a "chapter" that has a short, evocative "heading" and the full narrative "body". Separate paragraphs within the body with two newline characters.`;
+
+  parts.push(outputInstruction);
 
   return parts.join('\n\n');
 }
 
 function continuePrompt(book, currentBody, pendingInstruction, chapterSettings) {
-  const nextNumber = getNextChapterNumber(book.chapters || []);
   const parts = [];
+  const format = book.format || 'Auto';
+
+  const entryLabel =
+    format === 'Short story collection'
+      ? 'short story'
+      : format === 'Episodic'
+        ? 'episode'
+        : 'chapter';
+
+  const continuationGoal =
+    format === 'Short story collection'
+      ? 'Continue the current short story, developing its existing events and characters. Bring this story to a satisfying conclusion when its central conflict is resolved. Do not turn it into a continuation of a previous story.'
+      : format === 'Episodic'
+        ? 'Continue the current episode, developing its central event and moving toward a satisfying resolution. Preserve continuity with the established cast and world.'
+        : format === 'Serialized chapters'
+          ? 'Continue this installment naturally, developing its events and moving toward a satisfying installment ending or hook when appropriate.'
+          : format === 'Novel'
+            ? 'Continue the current chapter of the ongoing novel, maintaining continuity and advancing the larger narrative naturally.'
+            : 'Continue the current narrative in a way that fits its established structure, maintaining continuity and giving the entry an appropriate ending.';
 
   parts.push(
-    `Continue the CURRENT Chapter ${nextNumber} of "${book.title}" exactly where it left off. This is the SAME chapter — do not start a new chapter, do not resolve the whole story.`
+    `Continue the CURRENT ${entryLabel} of "${book.title}" exactly where it left off. This is the SAME entry. Do not restart it or repeat the existing text.`
   );
 
   parts.push(
-    `Here is the chapter so far (extend it from this point, maintaining tone, style and continuity):\n${currentBody || ''}`
+    `Here is the ${entryLabel} so far (extend it from this point, maintaining tone, style and continuity):\n${currentBody || ''}`
   );
 
   parts.push(
-    `Ongoing plot goals for this chapter:\n${persistentContext(book)}\n${
+    `Narrative goals and established context:\n${persistentContext(book)}\n${
       chapterGenreText(book, (book.chapters?.length || 0) - 1)
-        ? `Chapter genre: ${chapterGenreText(book, (book.chapters?.length || 0) - 1)}.`
+        ? `Genre: ${chapterGenreText(book, (book.chapters?.length || 0) - 1)}.`
         : ''
     }`
   );
+
+  parts.push(continuationGoal);
 
   const langNote = languageOverrideNote(book);
   if (langNote) parts.push(langNote);
@@ -643,20 +706,22 @@ function continuePrompt(book, currentBody, pendingInstruction, chapterSettings) 
 
   if (max) {
     parts.push(
-      `The chapter needs to reach roughly ${min.toLocaleString()} to ${max.toLocaleString()} words TOTAL. Continue the narrative (don't just summarize) to develop this chapter toward that length, expanding the scene and events naturally.`
+      `The ${entryLabel} needs to reach roughly ${min.toLocaleString()} to ${max.toLocaleString()} words TOTAL. Continue the narrative rather than summarizing it, developing events naturally toward the target length. Do not add unnecessary filler or delay a resolution that has already been earned.`
     );
   } else if (min) {
     parts.push(
-      `The chapter needs to reach roughly ${min.toLocaleString()} words TOTAL. Continue the narrative (don't just summarize) to develop this chapter toward that length.`
+      `The ${entryLabel} needs to reach roughly ${min.toLocaleString()} words TOTAL. Continue the narrative rather than summarizing it, developing events naturally toward the target length without unnecessary filler.`
     );
   }
 
   if (pendingInstruction && pendingInstruction.trim()) {
-    parts.push(`Additional author direction for the continuation:\n${pendingInstruction.trim()}`);
+    parts.push(
+      `Additional author direction for this continuation:\n${pendingInstruction.trim()}`
+    );
   }
 
   parts.push(
-    'Your response must be a DIRECT CONTINUATION of the chapter\'s text — continue writing prose, not a meta-instruction. Return an object with a "chapter" whose "heading" is empty (or repeat the existing heading) and whose "body" is ONLY the new continuation text to append, not the whole chapter. Separate paragraphs with two newline characters.'
+    'Your response must be a DIRECT CONTINUATION of the existing text, not a meta-instruction. Return an object with a "chapter" whose "heading" is empty or repeats the existing heading, and whose "body" contains ONLY the new prose to append, not the entire entry. Separate paragraphs with two newline characters.'
   );
 
   return parts.join('\n\n');
@@ -740,6 +805,7 @@ export default function useStorybook() {
   const updateBook = async (id, updates) => {
     const safeUpdates = { ...updates };
 
+
     if (Array.isArray(safeUpdates.chapters)) {
       safeUpdates.chapters = savedChaptersOnly(safeUpdates.chapters);
       safeUpdates.chapter_count = safeUpdates.chapters.length;
@@ -800,23 +866,32 @@ export default function useStorybook() {
     }
   };
 
+  // Only show stories that have at least one explicitly saved chapter.
+  // Empty metadata records remain in the database so active workspaces can
+  // continue using their book IDs, but they do not appear on the bookshelf.
   const loadBookshelf = useCallback(async () => {
     try {
-      const shelf = await listBooksApi(50);
+      const shelf = await listBooksApi(100);
 
-      setBookshelf(
-        shelf.map((b) => ({
-          id: b.id,
-          title: b.title,
-          idea: b.idea || '',
-          genre: b.genre,
-          chapters: Array.isArray(b.chapters)
-            ? b.chapters.length
-            : Number(b.chapter_count) || 0,
-          updated: b.updated_date || b.updated_at,
-          cover_url: b.cover_url || null
-        }))
-      );
+      const savedBooks = shelf
+        .map((b) => {
+          const chapters = Array.isArray(b.chapters)
+            ? b.chapters.filter((chapter) => chapter?.saved === true)
+            : [];
+
+          return {
+            id: b.id,
+            title: b.title,
+            idea: b.idea || '',
+            genre: b.genre,
+            chapters: chapters.length,
+            updated: b.updated_date || b.updated_at,
+            cover_url: b.cover_url || null
+          };
+        })
+        .filter((b) => b.chapters > 0);
+
+      setBookshelf(savedBooks);
     } catch {
       /* bookshelf best-effort */
     }
@@ -941,7 +1016,11 @@ export default function useStorybook() {
       };
 
       const res = await callGemini(
-        genPrompt({ ...base, title: titleGuess, chapters: [] }, '', chapterSettings),
+        genPrompt(
+          { ...base, title: titleGuess, chapters: [] },
+          '',
+          chapterSettings
+        ),
         nextChapterSchema
       );
 
@@ -1202,7 +1281,10 @@ export default function useStorybook() {
     setError('');
 
     try {
-      const res = await callGemini(regeneratePrompt(current, index), chapterSchema);
+      const res = await callGemini(
+        regeneratePrompt(current, index),
+        chapterSchema
+      );
 
       if (!res?.body?.trim()) {
         throw new Error(
@@ -1264,20 +1346,40 @@ export default function useStorybook() {
     }
   };
 
+  // Build a format-aware prompt for rewriting only the selected entry.
   const regeneratePrompt = (book, index) => {
     const parts = [];
+    const oldCh = book.chapters[index];
+
     const chapterNumber =
-      Number(book.chapters[index]?.chapter_number) || index + 1;
+      Number(oldCh?.chapter_number) || index + 1;
 
-    parts.push(
-      `Rewrite ONLY "Chapter ${chapterNumber}" of the story "${book.title}". Keep the rest of the story exactly as it is — do not change events in other chapters.`
-    );
+    const format = book.format || 'Auto';
 
+    const entryLabel =
+      format === 'Short story collection'
+        ? 'short story'
+        : format === 'Episodic'
+          ? 'episode'
+          : 'chapter';
+
+    const rewriteInstruction =
+      format === 'Short story collection'
+        ? `Rewrite ONLY Short Story ${chapterNumber} in the collection "${book.title}". Make this a complete, independent short story with its own central situation, development, and satisfying resolution. It may share characters or a world with other stories, but must have its own plot. Do not rewrite any other entry.`
+        : format === 'Episodic'
+          ? `Rewrite ONLY Episode ${chapterNumber} of "${book.title}". Give the episode a clear central event and a satisfying resolution while preserving continuity with the recurring cast and world. Do not rewrite any other episode.`
+          : format === 'Serialized chapters'
+            ? `Rewrite ONLY Chapter ${chapterNumber} of the serialized story "${book.title}". Preserve the ongoing plot and give the installment appropriate forward momentum and, where suitable, a hook for the next installment. Do not rewrite other chapters.`
+            : format === 'Novel'
+              ? `Rewrite ONLY Chapter ${chapterNumber} of the novel "${book.title}". Preserve the connected narrative, character development, and larger plot. Do not rewrite other chapters.`
+              : `Rewrite ONLY ${entryLabel} ${chapterNumber} of "${book.title}". Preserve the established narrative structure and the entry's appropriate ending. Do not rewrite any other entries.`;
+
+    parts.push(rewriteInstruction);
     parts.push(persistentContext(book));
 
     if (book.summary && book.summary.trim()) {
       parts.push(
-        `Rolling summary of the story so far (binding continuity):\n${book.summary}`
+        `Rolling summary of the story so far. Use it to preserve relevant continuity, while respecting the selected format:\n${book.summary}`
       );
     }
 
@@ -1285,7 +1387,11 @@ export default function useStorybook() {
       .map((c, i) =>
         i === index
           ? ''
-          : `[Chapter ${Number(c.chapter_number) || i + 1} — ${c.heading}]\n${(
+          : `[${format === 'Short story collection'
+              ? 'Other short story'
+              : format === 'Episodic'
+                ? 'Other episode'
+                : 'Other chapter'} ${Number(c.chapter_number) || i + 1} — ${c.heading}]\n${(
               c.body || ''
             ).slice(0, 900)}`
       )
@@ -1293,17 +1399,19 @@ export default function useStorybook() {
       .join('\n\n');
 
     if (others) {
-      parts.push(`For continuity, here are the other chapters:\n${others}`);
+      parts.push(
+        format === 'Short story collection'
+          ? `Other stories for reference. Preserve shared-world details when useful, but do not copy their central plots or merge them into the story being rewritten:\n${others}`
+          : `Other entries for continuity. Do not rewrite or contradict them:\n${others}`
+      );
     }
-
-    const oldCh = book.chapters[index];
 
     if (
       oldCh?.genre &&
       oldCh.genre !== 'Auto' &&
       oldCh.genre !== 'Custom'
     ) {
-      parts.push(`Preserve the genre for this chapter: ${oldCh.genre}.`);
+      parts.push(`Preserve the genre for this ${entryLabel}: ${oldCh.genre}.`);
     }
 
     const [min, max] = resolveRange(
@@ -1314,20 +1422,20 @@ export default function useStorybook() {
 
     if (max) {
       parts.push(
-        `Aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words for this rewritten chapter.`
+        `Aim for approximately ${min.toLocaleString()} to ${max.toLocaleString()} words for this rewritten ${entryLabel}. Develop it fully without unnecessary padding.`
       );
     } else if (min) {
       parts.push(
-        `Aim for at least approximately ${min.toLocaleString()} words for this rewritten chapter.`
+        `Aim for at least approximately ${min.toLocaleString()} words for this rewritten ${entryLabel}.`
       );
     }
 
     parts.push(
-      'The rewritten chapter should fit seamlessly into the story, stay consistent with tone, continuity and plot progression, and avoid introducing contradictions with the surrounding chapters. Its heading may change slightly.'
+      `The rewritten ${entryLabel} must fit the selected format and remain consistent with the established characters, setting, tone, and relevant continuity.`
     );
 
     parts.push(
-      'Return only this chapter as an object with "heading" and "body". Separate paragraphs within the body with two newline characters.'
+      'Return only this entry as an object with "heading" and "body". The heading should be short and evocative. Separate paragraphs within the body with two newline characters.'
     );
 
     return parts.join('\n\n');
@@ -1381,6 +1489,7 @@ export default function useStorybook() {
       await loadBookshelf();
     } catch (err) {
       setError(err?.message || 'The chapter could not be saved.');
+
       // Keep the local draft, but revert its saved flag if persistence failed.
       setBook((previous) => {
         if (!previous) return previous;
@@ -1426,8 +1535,9 @@ export default function useStorybook() {
     return newCh;
   };
 
-  // Deleting a chapter explicitly removes it from the working copy. If it
-  // was saved, persist the deletion without persisting any other draft chapters.
+  // Deleting a chapter explicitly removes it from the working copy.
+  // If it was saved, persist the deletion without saving any draft chapters.
+  // The active workspace stays open even when the last saved chapter is removed.
   const deleteChapter = async (index) => {
     const current = bookRef.current;
     if (!current?.id) return;
@@ -1435,9 +1545,40 @@ export default function useStorybook() {
     const removedChapter = current.chapters[index];
     if (!removedChapter) return;
 
+    const savedCountBefore = savedChaptersOnly(
+      current.chapters || []
+    ).length;
+
+    const isLastSavedChapter =
+      removedChapter.saved === true && savedCountBefore === 1;
+
+    // StoryReader already displays the first deletion confirmation.
+    // These three additional confirmations apply only to the last saved chapter.
+    if (isLastSavedChapter) {
+      const stageTwo = window.confirm(
+        'This is your last saved chapter. Deleting it will remove this story from Saved Stories. Continue?'
+      );
+
+      if (!stageTwo) return;
+
+      const stageThree = window.confirm(
+        'Your current writing workspace will remain open, but this story will no longer appear in Saved Stories until you save a chapter again. Do you understand?'
+      );
+
+      if (!stageThree) return;
+
+      const stageFour = window.confirm(
+        'FINAL CONFIRMATION: Delete the last saved chapter? This action cannot be undone.'
+      );
+
+      if (!stageFour) return;
+    }
+
     const chapters = current.chapters.filter((_, i) => i !== index);
     const next = { ...current, chapters };
+
     setBook(next);
+    setError('');
 
     try {
       await updateBook(current.id, {
@@ -1445,12 +1586,13 @@ export default function useStorybook() {
         chapter_count: savedChaptersOnly(chapters).length
       });
     } catch (err) {
+      // Restore the original workspace if the database update fails.
+      setBook(current);
       setError(err?.message || 'The chapter could not be deleted.');
       return;
     }
 
-    // Refresh the summary from the remaining saved chapters, without
-    // including unsaved drafts in the stored summary.
+    // Refresh the summary using only the remaining saved chapters.
     const savedText = savedChaptersOnly(chapters)
       .map(
         (chapter) =>
@@ -1468,10 +1610,12 @@ export default function useStorybook() {
       try {
         await updateBook(current.id, { summary: '' });
       } catch {
-        /* summary persistence best-effort */
+        /* summary persistence is best-effort */
       }
     }
 
+    // The story remains active in the workspace, but disappears from the shelf
+    // when it has no saved chapters.
     await loadBookshelf();
   };
 
@@ -1500,11 +1644,20 @@ export default function useStorybook() {
   };
 
   // Save Story saves metadata such as the title, not unsaved chapter drafts.
+  // A story cannot be saved to My Stories unless it has at least one saved chapter.
   const saveStory = async (title) => {
     const current = bookRef.current;
     if (!current?.id) return;
 
+    if (savedChaptersOnly(current.chapters || []).length === 0) {
+      setError(
+        'Save at least one chapter before saving this story to My Stories.'
+      );
+      return;
+    }
+
     setSaving(true);
+    setError('');
 
     try {
       const next = { ...current, title };
@@ -1512,6 +1665,8 @@ export default function useStorybook() {
 
       await updateBook(current.id, { title });
       await loadBookshelf();
+    } catch (err) {
+      setError(err?.message || 'The story could not be saved.');
     } finally {
       setSaving(false);
     }
