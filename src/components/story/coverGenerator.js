@@ -8,9 +8,11 @@ const coverDecisionSchema = {
   required: ['regenerate']
 };
 
+import { apiUrl } from '../../lib/api';
+
 async function callGemini(prompt, schema) {
   const response = await fetch(
-    'http://localhost:3001/api/gemini',
+    apiUrl('/api/gemini'),
     {
       method: 'POST',
       headers: {
@@ -34,7 +36,7 @@ async function callGemini(prompt, schema) {
 
 async function generateImage(prompt) {
   const response = await fetch(
-    'http://localhost:3001/api/images',
+    apiUrl('/api/images'),
     {
       method: 'POST',
       headers: {
@@ -61,7 +63,7 @@ async function generateImage(prompt) {
 
 async function updateBook(bookId, updates) {
   const response = await fetch(
-    `http://localhost:3001/api/books/${bookId}`,
+    apiUrl(`/api/books/${bookId}`),
     {
       method: 'POST',
       headers: {
