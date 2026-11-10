@@ -17,7 +17,7 @@ CREATE TABLE books (
     summary TEXT,
     directions LONGTEXT,
     story_length VARCHAR(50),
-    cover_url TEXT,
+    cover_url LONGTEXT,
     chapter_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
