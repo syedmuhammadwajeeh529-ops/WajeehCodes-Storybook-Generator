@@ -18,7 +18,6 @@ import {
 import { GenrePicker, ChapterLengthPicker } from './StoryConfig';
 import { lengthLabel } from './storyOptions';
 import CoverImage from './CoverImage';
-import ParagraphIllustration from './ParagraphIllustration';
 import VoiceInput from './VoiceInput';
 import useStoryNarration from './useStoryNarration';
 
@@ -79,7 +78,6 @@ function ChapterBlock({
   onDelete,
   onAddAfter,
   defaultEditing,
-  illustrating,
   saving,
   onReadAloud,
   isReading,
@@ -157,12 +155,6 @@ function ChapterBlock({
           </div>
         </div>
       </div>
-
-      <ParagraphIllustration
-        paragraphs={(chapter.body || '').split(/\n\s*\n/).filter(Boolean)}
-        illustrations={chapter.illustrations}
-        illustrating={illustrating}
-      />
 
       <div className="flex flex-wrap gap-2 mt-6 pt-5 border-t border-[#e1ded3]">
         <button
@@ -497,7 +489,6 @@ export default function StoryReader({
   suggestions,
   saving,
   coverStatus,
-  illustratingChapters,
   chapterSettings,
   setChapterSettings,
   onRegen,
@@ -747,7 +738,6 @@ export default function StoryReader({
             onRegen={onRegen}
             onDelete={onDelete}
             onAddAfter={onAddAfter}
-            illustrating={!!illustratingChapters?.[i]}
             saving={saving}
             onReadAloud={() => readChapter(chapter, i)}
             isReading={
