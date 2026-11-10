@@ -11,8 +11,12 @@ import {
 import { generateImage } from "./images.js";
 
 const PORT = Number(process.env.PORT) || 3001;
-const CORS_ORIGIN =
-  process.env.CORS_ORIGIN || "http://localhost:5173";
+const ALLOWED_ORIGINS = new Set(
+  (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
 
 function writeJson(res, status, payload) {
   res.writeHead(status, {
@@ -22,7 +26,11 @@ function writeJson(res, status, payload) {
 }
 
 const server = http.createServer(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", CORS_ORIGIN);
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && ALLOWED_ORIGINS.has(requestOrigin)) {
+    res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+  }
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
