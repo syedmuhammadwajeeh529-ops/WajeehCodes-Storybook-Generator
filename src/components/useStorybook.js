@@ -1681,8 +1681,7 @@ export default function useStorybook() {
     }
 
     const chapters = normalizeLoadedChapters(saved.chapters || []);
-
-    setBook({
+    const openedBook = {
       id: saved.id,
       title: saved.title,
       idea: saved.idea || '',
@@ -1699,7 +1698,34 @@ export default function useStorybook() {
       story_length:
         saved.story_length || mapLegacyLength(saved.story_length),
       cover_url: saved.cover_url || null
-    });
+    };
+
+    setBook(openedBook);
+
+    // Older stories may have no saved cover because earlier image writes
+    // exceeded the database TEXT limit. Generate one when such a story opens.
+    if (!openedBook.cover_url && chapters.length > 0) {
+      setCoverStatus('painting');
+
+      try {
+        const url = await generateInitialCover(openedBook);
+
+        if (url) {
+          setBook((prev) =>
+            prev?.id === openedBook.id
+              ? { ...prev, cover_url: url }
+              : prev
+          );
+          await loadBookshelf();
+        }
+      } catch (err) {
+        setError(
+          err?.message || 'The book cover could not be generated. Please try again.'
+        );
+      } finally {
+        setCoverStatus('idle');
+      }
+    }
 
     setIdea('');
     setCharacters([]);
