@@ -307,7 +307,7 @@ function ChapterComposer({
   setChapterSettings,
   onError
 }) {
-  const busy = status === 'next' || status === 'story';
+  const busy = status === 'next' || status === 'story' || status === 'choosing';
   const hasIdea = !!(idea && idea.trim());
 
   const pickSuggestion = (text) => setIdea(text.trim());
@@ -425,6 +425,13 @@ function ChapterComposer({
             ))}
           </div>
         </div>
+      )}
+
+      {status === 'choosing' && (
+        <p className="mt-4 inline-flex items-center gap-2 text-sm text-[#57654b]">
+          <Loader2 size={15} className="animate-spin" />
+          Choosing the best suggested direction…
+        </p>
       )}
 
       {busy && (
