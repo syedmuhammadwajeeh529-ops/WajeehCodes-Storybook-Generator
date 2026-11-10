@@ -102,7 +102,7 @@ function escapeXml(value) {
 function generateFallbackCover(prompt) {
   const titleMatch = prompt.match(/story titled ["“]([^"”]+)["”]/i);
   const title = (titleMatch?.[1] || 'Your Story').trim().slice(0, 54);
-  const words = title.split(/\\s+/);
+  const words = title.split(/\s+/);
   const lines = [];
   let line = '';
 
