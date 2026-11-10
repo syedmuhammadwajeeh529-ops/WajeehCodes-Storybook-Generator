@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { CHAPTER_RANGES } from './story/storyOptions';
 import { generateInitialCover, maybeRefreshCover } from './story/coverGenerator';
-import { illustrateChapter } from './story/paragraphIllustrator';
 
 // Word-count helpers -----------------------------------------------------------
 
@@ -821,7 +820,6 @@ export default function useStorybook() {
   const [suggestions, setSuggestions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [coverStatus, setCoverStatus] = useState('idle');
-  const [illustratingChapters, setIllustratingChapters] = useState({});
 
   const bookRef = useRef(null);
   bookRef.current = book;
@@ -841,58 +839,6 @@ export default function useStorybook() {
     }
 
     return updateBookApi(id, safeUpdates);
-  };
-
-  // Update a chapter's illustrations in the working copy. If the chapter has
-  // already been explicitly saved, its updated illustrations can be persisted.
-  const illustrateChapterAt = async (bookState, chapterIndex) => {
-    const chapter = bookState?.chapters?.[chapterIndex];
-
-    if (!chapter || !chapter.body?.trim()) return;
-
-    setIllustratingChapters((prev) => ({
-      ...prev,
-      [chapterIndex]: true
-    }));
-
-    try {
-      const { illustrations } = await illustrateChapter(bookState, chapter);
-      const current = bookRef.current;
-
-      if (!current) return;
-
-      const updated = (current.chapters || []).map((c, i) =>
-        i === chapterIndex
-          ? {
-              ...c,
-              illustrations: {
-                ...(c.illustrations || {}),
-                ...illustrations
-              }
-            }
-          : c
-      );
-
-      const nextBook = { ...current, chapters: updated };
-      setBook(nextBook);
-
-      // Illustrations must not cause an unsaved chapter to be stored.
-      if (updated[chapterIndex]?.saved === true) {
-        try {
-          await updateBook(current.id, { chapters: updated });
-        } catch {
-          /* illustration persistence is best-effort */
-        }
-      }
-    } catch {
-      /* illustration best-effort */
-    } finally {
-      setIllustratingChapters((prev) => {
-        const next = { ...prev };
-        delete next[chapterIndex];
-        return next;
-      });
-    }
   };
 
   // Only show stories that have at least one explicitly saved chapter.
@@ -1137,7 +1083,6 @@ export default function useStorybook() {
         setCoverStatus('idle');
       }
 
-      await illustrateChapterAt(nextBook, 0);
     } catch (err) {
       setError(
         err?.message ||
@@ -1287,7 +1232,6 @@ export default function useStorybook() {
         setCoverStatus('idle');
       }
 
-      await illustrateChapterAt(next, chapters.length - 1);
       await loadSuggestions();
       await loadBookshelf();
     } catch (err) {
@@ -1347,7 +1291,6 @@ export default function useStorybook() {
         wordCount: countWords(body),
         chapter_number: chapterNumber,
         saved: false,
-        illustrations: {}
       };
 
       const chapters = current.chapters.map((c, i) =>
@@ -1363,7 +1306,6 @@ export default function useStorybook() {
         `[Chapter ${chapterNumber} — ${newCh.heading}]\n${newCh.body}`
       );
 
-      await illustrateChapterAt(next, index);
       await loadBookshelf();
     } catch (err) {
       setError(
@@ -1837,7 +1779,6 @@ export default function useStorybook() {
     suggestions,
     saving,
     coverStatus,
-    illustratingChapters,
     generate,
     generateNextChapter,
     continueAutomatically,
