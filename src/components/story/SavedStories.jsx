@@ -1,10 +1,8 @@
 
 import React from 'react';
 import {
-  BookOpen,
   PenLine,
   ArrowLeft,
-  Library,
   Trash2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -47,7 +45,7 @@ export default function SavedStories({
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <span className="w-10 h-10 rounded-full bg-[#354834] text-white flex items-center justify-center">
-            <Library size={18} />
+            <img src="/favicon.svg" alt="" className="w-7 h-7" />
           </span>
           <div>
             <h1 className="font-serif text-3xl text-[#2c342b]">
@@ -78,7 +76,7 @@ export default function SavedStories({
 
       {books.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-[#c9c5b8] bg-[#f7f4ec] p-12 text-center">
-          <BookOpen size={28} className="mx-auto text-[#8b887c]" />
+          <img src="/favicon.svg" alt="" className="w-12 h-12 mx-auto" />
           <p className="font-serif text-2xl text-[#354834] mt-4">
             No saved stories yet
           </p>
