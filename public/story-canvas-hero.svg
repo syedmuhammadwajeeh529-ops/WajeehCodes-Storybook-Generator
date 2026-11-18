@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-labelledby="title desc">
+  <title id="title">Story Canvas AI storybook</title>
+  <desc id="desc">An open, glowing book with a quill and floating stars, in blue, violet and magenta.</desc>
+  <defs>
+    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#202b62"/><stop offset=".55" stop-color="#51418b"/><stop offset="1" stop-color="#a34db7"/></linearGradient>
+    <linearGradient id="pages" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffefb"/><stop offset="1" stop-color="#e9e5fa"/></linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#35d8ff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ed55d8"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur in="SourceAlpha" stdDeviation="8"/><feOffset dy="9"/><feComponentTransfer><feFuncA type="linear" slope=".22"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <circle cx="160" cy="130" r="105" fill="#8b5cf6" opacity=".07"/>
+  <circle cx="160" cy="130" r="88" fill="none" stroke="url(#glow)" stroke-width="1.5" opacity=".28"/>
+  <g fill="url(#glow)">
+    <path d="M52 75l4 11 11 4-11 4-4 11-4-11-11-4 11-4z"/>
+    <path d="M259 48l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/>
+    <path d="M270 153l2.5 7 7 2.5-7 2.5-2.5 7-2.5-7-7-2.5 7-2.5z"/>
+    <circle cx="84" cy="42" r="2.5"/><circle cx="233" cy="90" r="2"/><circle cx="64" cy="174" r="2"/><circle cx="225" cy="207" r="3"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M45 151c37-16 75-13 115 8v57c-42-21-79-24-115-8z" fill="url(#cover)" stroke="#6e63c2" stroke-width="2"/>
+    <path d="M275 151c-37-16-75-13-115 8v57c42-21 79-24 115-8z" fill="url(#cover)" stroke="#6e63c2" stroke-width="2"/>
+    <path d="M54 146c34-13 69-9 106 12v49c-38-19-73-22-106-9z" fill="url(#pages)" stroke="#d4c8f4" stroke-width="1.5"/>
+    <path d="M266 146c-34-13-69-9-106 12v49c38-19 73-22 106-9z" fill="url(#pages)" stroke="#d4c8f4" stroke-width="1.5"/>
+    <path d="M160 158v59" stroke="#b4a4e5" stroke-width="2"/>
+    <g stroke="#b7acd4" stroke-width="2" stroke-linecap="round" opacity=".8">
+      <path d="M75 166c22-6 43-2 63 8M75 179c20-5 39-2 57 7M75 192c18-4 34-1 48 6"/>
+      <path d="M245 166c-22-6-43-2-63 8M245 179c-20-5-39-2-57 7M245 192c-18-4-34-1-48 6"/>
+    </g>
+  </g>
+  <g transform="translate(191 26) rotate(27)">
+    <path d="M0 112C-7 71 1 29 26 0c17 35 15 73-5 112z" fill="url(#glow)" stroke="#6855bb" stroke-width="1.5"/>
+    <path d="M4 108 25 8" stroke="#fff" stroke-width="1.6" opacity=".8"/>
+    <path d="M-1 111h26l-10 10H7z" fill="#d9d3ff"/>
+    <path d="M8 119v14" stroke="#51418b" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <path d="M126 89c10-9 22-12 34-9" fill="none" stroke="url(#glow)" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+</svg>
