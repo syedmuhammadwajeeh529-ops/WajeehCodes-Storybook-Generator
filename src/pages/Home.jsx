@@ -1,6 +1,4 @@
-
 import React, { useEffect } from 'react';
-import { Feather } from 'lucide-react';
 import StartPage from '@/components/story/StartPage';
 import StoryWorkspace from '@/components/story/StoryWorkspace';
 import SavedStories from '@/components/story/SavedStories';
@@ -16,21 +14,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f4f1e9] text-[#293329]">
       <header className="border-b border-[#dedbd0] bg-[#f9f7f1]/90">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between gap-4">
           <button
             onClick={s.goToStart}
-            className="flex items-center gap-2.5"
+            aria-label="Story Canvas AI home"
+            className="flex items-center min-w-0"
           >
-            <span className="w-9 h-9 rounded-full bg-[#354834] text-white flex items-center justify-center">
-              <Feather size={18} />
-            </span>
-            <span className="font-serif text-xl font-semibold tracking-tight">
-              Storykind
-            </span>
+            <img
+              src="/story-canvas-logo.svg"
+              alt="Story Canvas AI by Wajeeh Codes"
+              className="h-12 w-auto max-w-[250px]"
+            />
           </button>
 
-          <span className="hidden sm:block text-[11px] uppercase tracking-[0.2em] text-[#8c887d]">
-            Create, edit &amp; save your stories
+          <span className="hidden sm:block text-[11px] uppercase tracking-[0.2em] text-[#8c887d] text-right">
+            Dream · Write · Create
           </span>
         </div>
       </header>
